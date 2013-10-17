@@ -1,0 +1,348 @@
+%!TEX encoding=UTF-8 Unicode
+
+\documentclass[10pt, conference, compsocconf]{IEEEtran}
+
+%=========================encodage fontes et langue=============================
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}    % (pour les accents)
+
+%===============================================================================
+
+%========================= gestion des hyperliens ==============================
+
+\usepackage{cite}
+\usepackage{url}
+\usepackage{hyperref}
+\hypersetup{
+    dvips,
+    backref=true, %permet d'ajouter des liens dans...
+    pagebackref=true,%...les bibliographies
+    hyperindex=true, %ajoute des liens dans les index.
+    colorlinks=true, %colore les liens
+    breaklinks=true, %permet le retour à la ligne dans les liens trop longs
+    urlcolor= blue, %couleur des hyperliens
+    linkcolor= black, %couleur des liens internes
+    bookmarks=true, %créé des signets pour Acrobat
+bookmarksopen=true} 
+
+%===============================================================================
+
+%=========================Mathématiques========================================
+
+\usepackage[cmex10]{amsmath} 
+\usepackage{array} % tableaux pour les matrices
+
+%===============================================================================
+
+%==========================inclusion d'images===================================
+
+\usepackage[pdftex]{graphicx} % \includegraphics
+\graphicspath{{./img/}}
+%\usepackage[caption=false]{caption}
+\usepackage[caption=false,font=footnotesize]{subfig}
+
+%===============================================================================
+
+%==========================listes et mise en page===============================
+
+%\usepackage{paralist} % listes : enumerate, itemize
+%\frenchbsetup{StandardLists=true} %pour avoir des listes avec des points
+
+\usepackage[usenames,dvipsnames]{color} %de la couleur
+
+%\usepackage{appendix} %Annexes
+
+%===============================================================================
+
+%=========================déclaration de titre=================================
+
+\author{\IEEEauthorblockN{David Beniamine, Guillaume Huard, Denis Trystramn}
+\IEEEauthorblockA{Grenoble Informatics Laboratory (LIG)\\
+Inria\\
+Grenoble, France\\
+david.beniamine@imag.fr, guillaume.huard@imag.fr, denis.trystramn@imag.fr}
+}
+
+\title{Reducing the impact of communication times on heterogeneous
+applications scheduling using KAAPI }
+
+%===============================================================================
+
+\begin{document}
+
+%==========================page de présentation================================
+
+\maketitle%affichage du titre
+\begin{abstract}
+    High Performance Computing machines use more and more
+    Graphical Processing Units as they are very efficient for homogeneous 
+    computation such as matrix operations. However before using these 
+    accelerators, one has to transfer data from the processor to them. Such a
+    transfer can be slow. 
+
+    In this study, our aim is to reduce the impact of communication times on
+    the makespan of a scheduling. Indeed, with a better anticipation of these
+    communications, we could use the GPUs even more efficiently. More
+    precisely, we will focus on machines with many GPUs and on
+    applications with a low ratio of computations over communications. 
+
+    During this study, we have implemented two offline scheduling algorithms
+    within  XKAAPI's runtime. Then we have led an experimental study, combining 
+    these algorithms to highlight the impact of communication times.
+
+    Finally our study has shown that, by using communication aware scheduling
+    algorithms, we can reduce substantially the makespan of an application.
+    Our experiments have shown a significant reduction of this makespan on a
+    machine with several GPUs executing homogeneous computations.
+
+\end{abstract}
+
+\begin{IEEEkeywords}
+GPU; Clustering; Scheduling; KAAPI; Commuications;
+
+\end{IEEEkeywords}
+
+
+
+%===============================================================================
+
+%=========================début réel du document==============================
+\section{Introduction}
+\section{State of the Art}
+Numerous programing environment have been designed to help programmers writing
+efficient parallel code. Although these middlewares are conceived for various
+architectures and have different programing models, most of them need to find a
+suitable scheduling.
+
+To present the related work, we are going to explain first the various ideas
+carried out by the existing parallel programing environments in section
+\ref{sec:soa-par-run}.  Then in section \ref{sec:soa-sched} we will
+present several scheduling algorithms more or less suited to our problem and
+discuss their pros and cons.
+
+\subsection{Writing parallel applications} \label{sec:soa-par-run}
+
+When we need to write parallel code, before choosing the middleware or the API
+we will use, we have to think about the architecture that we target. For
+example, if we want to run some computation on a GPU, we can use a vendor's
+interface such as CUDA\cite{nvidia2010c} or an open one like
+OpenCL\cite{stone2010opencl}. We can combine this code with a classical API
+for parallelization on Symetric MultiProcessing such as
+OpenMP\cite{dagum1998openmp}. And if we need to work on a cluster of machines
+and send messages through a network, we can add some MPI\cite{lusk2009mpi}
+code.
+
+However each of these environments are designed for a specific kind of
+architecture, if we just combine them, we still have to manage all data
+transfers and synchronizations. Other runtimes such as
+KAAPI\cite{gautier2007kaapi}, StarPU\cite{augonnet2011starpu} and
+OmpSS\cite{bueno2011productive} have been designed to provide a higher level
+of abstraction to the programmer. Therefore he does not have to manage the
+data transfers and synchronizations which can be deduced by the middleware,
+from the dataflow graph of the application. The user only need to specify for
+each task the access mode of the data (read and/or write).
+
+However this classification is not the only one possible, indeed all these
+softwares have evolved since their first release, hence it is interesting to
+discuss another difference between them such as the policy used for the
+scheduling of the tasks onto the resources.
+
+The simplest policy consist in dividing the work into equally sized chunks
+(i.e. cut a loop into as much chunks as many resources we have) and give the
+same number of chunks to each processors. This policy is used by default in
+OpenMP, however when either the resources or the work are heterogeneous, it 
+leads to workload imbalances. To avoid that, and following the example
+of Cilk\cite{frigo1998implementation}, several middlewares implement a dynamic
+algorithm such as workstealing\cite{blumofe1995cilk}. Among them we can find
+the latest revision of OpenMP\cite{bueno2011productive},
+XKAAPI\cite{gautierxkaapi}, its former release KAAPI\cite{gautier2007kaapi}
+and StarPU\cite{augonnet2011starpu}.
+
+Although the workstealing produce a good work balancing, it does not take
+into account the outgoing communications of the stolen tasks, hence it can
+take bad decisions regarding communication times and contention.  Therefore
+some runtimes such as XKAAPI\cite{gautierxkaapi} and
+StarPU\cite{augonnet2011starpu} embed more sophisticated scheduling
+algorithms such as HEFT which take both heterogeneity and communication times
+into account.  These middlewares also have an API to develop other
+schedulers.
+
+It's important to note that formalisms which have been designed initially for
+different purposes are converging to a dataflow model with a very
+sophisticated runtime. For example OmpSS which is aimed at providing OpenMP's
+model for heterogeneous platforms allow the user to express the dependencies
+between tasks. As these middlewares manages heterogeneous resources, they
+are all concerned by the limitation of the workstealing algorithm explained
+previously.
+
+\subsection{Scheduling algorithms} \label{sec:soa-sched}
+
+As we mentioned earlier, the task scheduling is a NP complete
+problem\cite{ullman1975np}. The most widely used scheduling heuristic is the
+list scheduling\cite{GrahamRL1966Bounds,GrahamRL1969Bounds}. The original
+idea is to forbid any processor to be idle when at least one task is ready
+(i.e.  all its predecessors are finished) to be executed. When there are more
+than one ready tasks, they are sorted according to some priorities, and the
+first task of the list is executed as soon as possible. On a model with
+identical processors and without communication, this algorithm give us a
+2-approximation.  The workstealing algorithm is based on the same idea and is
+indeed quite efficient for SMP architecture.
+
+However when we work on heterogeneous machines (without communication) the
+list scheduling can give bad results as the bound becomes
+$\frac{\omega}{\omega^*}\leq\min(s+2-\frac{2s+1}{n},\frac{n+1}{2})$
+\cite{garey1975bounds} where $s$ is the number of type of resources and $n$
+the number of processors. Thus each
+times we add a different resource, we add one time $\omega^*$ to the worst
+case of the algorithm. Furthermore with identical processors and
+communication times we have a bound of $\omega\leq(2-\frac{1}{n})\omega^*+C$
+\cite{hwang1989scheduling} where $C$ is the maximum chain of communications
+through the graph. Although in this bound $C$ is an additive constant, if
+there are some communication all along the critical path, $C \leq c\omega^*$
+where $c$ is the maximal cost of one communication.  Hence the worst case is
+proportional to the cost of a communication.  Consequently the list scheduling
+does not scale for heterogeneous machines and we need to take into account the
+communications.
+
+In this section we will first describe some adaptations of the list scheduling
+to heterogeneous model, then we are going to present some clustering
+algorithms which works on the structure of the graph and group the tasks
+together, zeroing the communication cost inside a cluster. 
+
+\subsubsection{List scheduling} \label{sec:soa-sched-list}
+
+Many searchers have revisited the list scheduling, adapting it to various
+architectures and testing several heuristics. Nevertheless, as our aim is to
+study the impact of data transfers, we will only present works related to
+scheduling with communication times.
+
+Earliest Tasks First\cite{hwang1989scheduling} is designed for a finite
+number of identical processors with a given unitary cost of communication
+for each couples of processors and without communication contention.
+
+For a tasks $T$ we defined the earliest starting time
+$e_s(T)=max(CM,min_{p\in I}(r(T,P)))$ where $CM$ is the Current Moment, $I$
+is the set of free processors, and $r(T,P)$ is the minimum time when all
+message needed by $T$ are received by $P$. ETF always execute the task with
+the smallest earliest starting time. 
+
+Although this algorithm find a scheduling with a makespan $\omega_{ETF} \leq
+(2-\frac{1}{n})\omega^{*}+C$, it is designed for homogeneous processors while
+this study target heterogeneous machines.
+
+The algorithms Heterogeneous Earliest Finish Time  and Critical Path On a
+Processor\cite{topcuoglu2002performance} target heterogeneous clusters where
+both communication times and execution times are not the same on all
+processors. 
+
+The HEFT algorithm sort the ready list by non increasing upward rank, which
+is defined recursively for a task $t$ by the following:\\
+$rank_u(t)=\overline{\omega_{t}}+\max\limits_{t' \in
+succ(t)}(\overline{C_{t,t'}}+rank_u(t'))$ where $\overline{\omega_{t}}$ is
+the mean execution time of $t$ and $\overline{C_{t,t'}}$ is the mean
+communication time from $t$ to $t'$. Then, for each task of the ready list,
+HEFT assign it to the processors which minimize its finish time. 
+
+CPOP is a variant of HEFT where the rank is the sum of upward and downward
+rank. Moreover CPOP compute the critical path and its execution time for each
+processor. The best processor is dedicated to the tasks of this path. All the
+other tasks are assigned the processor which minimize their finish time among
+the remaining processors.
+
+As the HEFT algorithm assumptions correspond to our case and as it is already
+implemented in XKAAPI\cite{gautierxkaapi} and
+StarPU\cite{augonnet2011starpu}, we will use this algorithm in our study.
+However HEFT assigns tasks without considering the incoming communications of
+their children which can be costly while the clustering algorithms focus on
+the structure of the graph, and can avoid this kind of mistakes.
+
+\subsubsection{Clustering algorithms} \label{sec:soa-sched-clust}
+
+Clustering algorithms are designed for an unbounded number of processors, they
+consider the structure of the DAG and group tasks into clusters. All the
+tasks which belong to one cluster are assigned to the same processor (i.e. 
+there are no communication between them).
+
+One of the most known clustering heuristic is the Dominant Sequence
+Clustering\cite{yang1994dsc}, it assigns to each task a priority corresponding
+to the sum of the longest path from a root node to this task and the longest
+path from this task to a sink node.Then the algorithm sort the tasks by
+decreasing priority and try to affect each task to the cluster which minimize
+its start time among the cluster containing its predecessors. However if a
+task can start earlier when we assign it to a new cluster instead of assigning
+it to an existing one, we create a new cluster for this task.
+
+\begin{figure}[htb]
+    \centering
+%    \includegraphics[width=0.65\textwidth]{CLANS.png}
+    \caption{Different type of CLANS.}
+    \label{fig:clans}
+\end{figure}
+
+The idea of CLANS
+\cite{aubum1990efficient,mccreary1993partitioning,mccreary1993graph} is to
+decompose the DAG into a tree of clans representing a recursive expression of
+the relationship between tasks. For a graph $G=(V,E)$, a set of nodes
+$X\subset V$ is a clan of the graph $G$ if and only if $\forall (x,y) \in X,
+\forall z \in V-X$, $z$ is an ancestor (or successor) of $x$ if and only if
+$z$ an ancestor (resp. successor) of $y$. There are three types of clans:
+Independent, linear and primitive (see figure \ref{fig:clans}). Once the graph
+is decomposed into clans, the algorithm traverse the tree bottom up using the
+communication and execution times to determine if two clans have to be merged
+or not.
+
+A theoretical comparison\cite{khan1994comparison} between the algorithms DSC,
+MCP (Modified Critical Path, similar to DSC), MH, HU (lists algorithms) and CLANS
+have shown that CLANS is robust and efficient for a large and diverse set of
+graphs. All the others algorithms give very bad performances for graphs with a
+low ratio computation over communications (also called grain).
+
+\begin{figure}[htb]
+    \centering
+%    \includegraphics[width=0.5\textwidth]{conv.png}
+    \caption{Convex and non convex group of tasks.}
+    \label{fig:conv}
+\end{figure}
+
+
+The convex clustering algorithm\cite{lepere2002new} produces an acyclic graph
+of clusters.  Indeed a cluster $C$ is convex if and only if $\forall\ (x,z)\
+\in\ C$ all task $y$, such that $x\ \prec\ y\ \prec\ z$, is in $C$ (see
+figure \ref{fig:conv}). By this property, we know that there are no two way
+communications between two clusters. Moreover as the graph obtained by merging
+the tasks inside a cluster is a Direct Acyclic Graph, it allow us to run
+any scheduling algorithm on it.
+
+To study the impact of communication times, we want to reduce the grain of
+the DAG by managing clusters as if they were large tasks. As  the dataflow
+model implemented by XKAAPI doesn't allow cyclic dependencies between tasks,
+the only algorithm which fits our needs is the convex clustering. Hence we
+will implement this algorithm inside XKAAPI, and we are going to combine it
+with the HEFT algorithm to understand the impact of communication times on a
+scheduling. 
+
+
+\section{Implementation of the convex cluster algorithm}
+\section{Analysis and reduction of the communication times}
+\section{Conclusions and future work}
+%===============================================================================
+
+%=========================Bibliographie========================================
+%\IEEEtriggeratref{3}
+
+\bibliographystyle{IEEEtran}
+\bibliography{ConvexGpu}
+
+%===============================================================================
+
+%=========================annexes==============================================
+
+%newpage
+%\appendix{ \textbf{Annexe }}
+
+%===============================================================================
+
+\end{document}
+

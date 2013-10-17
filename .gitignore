@@ -1,0 +1,16 @@
+*.ec
+ConvexGpu.pdf
+*.out
+*.png
+*.toc
+*.aux
+*.synctex.gz
+*.bbl
+*.tui
+*.o
+*.class
+*.swp
+*.swo
+*.blg
+*.nav
+*.snm
