@@ -1,5 +1,5 @@
 #tex file
-SRC=report.tex presentation.tex
+SRC=ConvexGpu.tex
 OUTPUT=$(SRC:.tex=.pdf)
 TEXLOG=$(SRC:.tex=.log)
 DOTSRC=$(wildcard *.dot)
@@ -8,21 +8,21 @@ PLOTSRC=$(wildcard *.plot)
 PLOTOUTPUT=$(PLOTSRC:.plot=.eps)
 PLOTTEX=$(PLOTSRC:.plot=.tex)
 #bibliography file
-BIB=report.bib
+BIB=ConvexGpu.bib
 
 all : $(OUTPUT)
 
-report.pdf: report.tex $(BIB) $(PLOTOUTPUT) $(DOTOUTPUT)
+ConvexGpu.pdf: ConvexGpu.tex $(BIB) $(PLOTOUTPUT) $(DOTOUTPUT)
 		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
 		bibtex $(patsubst %.tex,%.aux,$<) 
 		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
 		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
 
-presentation.pdf: presentation.tex $(BIB) $(PLOTOUTPUT) $(DOTOUTPUT)
-		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
-		bibtex $(patsubst %.tex,%.aux,$<) 
-		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
-		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
+#presentation.pdf: presentation.tex $(BIB) $(PLOTOUTPUT) $(DOTOUTPUT)
+#		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
+#		bibtex $(patsubst %.tex,%.aux,$<) 
+#		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
+#		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
 
 %.png : %.dot
 	dot -Tpng $< > $@

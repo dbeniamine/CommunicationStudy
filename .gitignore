@@ -1,5 +1,6 @@
 *.ec
 ConvexGpu.pdf
+ConvexGpu.log
 *.out
 *.png
 *.toc
