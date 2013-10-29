@@ -1,11 +1,12 @@
 #tex file
 SRC=ConvexGpu.tex
+IMGFOLDER=img
 OUTPUT=$(SRC:.tex=.pdf)
 TEXLOG=$(SRC:.tex=.log)
-DOTSRC=$(wildcard *.dot)
+DOTSRC=$(wildcard $(IMGFOLDER)/*.dot)
 DOTOUTPUT=$(DOTSRC:.dot=.png)
 PLOTSRC=$(wildcard *.plot)
-PLOTOUTPUT=$(PLOTSRC:.plot=.eps)
+PLOTSRC=$(wildcard $(IMGFOLDER)/*.plot)
 PLOTTEX=$(PLOTSRC:.plot=.tex)
 #bibliography file
 BIB=ConvexGpu.bib
@@ -28,14 +29,14 @@ ConvexGpu.pdf: ConvexGpu.tex $(BIB) $(PLOTOUTPUT) $(DOTOUTPUT)
 	dot -Tpng $< > $@
 
 %.eps : %.plot
-	gnuplot $<
+	cd ./$(IMGFOLDER) && gnuplot ../$< && cd ..
 	
 
 .PHONY: clean mrproper
 
 clean :
 	rm -f texput.log fit.log *.bbl *.blg $(TEXLOG) *.aux *.dvi *.out *.toc\
-		*.snm *.nav *-eps-converted-to.pdf* $(PLOTTEX) $(DOTOUTPUT)\
+		*.snm *.nav $(IMGFOLDER)/*-eps-converted-to.pdf* $(PLOTTEX) $(DOTOUTPUT)\
 		$(PLOTOUTPUT)
 
 mrproper: clean
