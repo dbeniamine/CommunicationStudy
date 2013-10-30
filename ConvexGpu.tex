@@ -1,6 +1,6 @@
 %!TEX encoding=UTF-8 Unicode
 
-\documentclass[10pt, conference, compsocconf,pdftex,usenames,dvipsnames]{IEEEtran}
+\documentclass[10pt, conference, compsocconf,pdftex,dvipsnames]{IEEEtran}
 
 %=========================encodage fontes et langue=============================
 
@@ -12,13 +12,15 @@
 
 %========================= Todo notes  =========================================
 
+
 \usepackage{todonotes}
 \newcommand{\mytodo}[1]{\todo[inline]{#1}}
-
 %===============================================================================
 
 %========================= gestion des hyperliens ==============================
 
+\usepackage{algpseudocode}
+\usepackage{algorithm}
 \usepackage{cite}
 \usepackage{url}
 \usepackage{hyperref}
@@ -40,9 +42,18 @@ bookmarksopen=true}
 %==========================inclusion d'images===================================
 
 %\usepackage[pdftex]{graphicx} % \includegraphics
+\usepackage{caption}
 \graphicspath{{./img/}}
-%\usepackage[caption=false]{caption}
-\usepackage[caption=false,font=footnotesize]{subfig}
+\makeatletter
+\let\MYcaption\@makecaption
+\makeatother
+\usepackage[font=footnotesize]{subcaption}
+
+\makeatletter
+\let\@makecaption\MYcaption
+\makeatother
+\usepackage{dblfloatfix}
+
 
 %===============================================================================
 
@@ -77,8 +88,8 @@ applications scheduling using KAAPI }
 %==========================page de présentation================================
 
 \maketitle%affichage du titre
-\mytodo{Full Rewrite when text is complete}
 \begin{abstract}
+    \mytodo{Full Rewrite when text is complete}
     High Performance Computing machines use more and more Graphical Processing
     Units as they are very efficient for homogeneous computation such as
     matrix operations. However before using these accelerators, one has to
@@ -239,27 +250,259 @@ compared to the makespan of the online one when the volume of
 communications is large enough. Moreover, using a clustering algorithm
 before HEFT, we have reduced the makespan of one scheduling up to $64\%$
 compared to the online HEFT.
+\mytodo{Outlines}
 
-
-%%%TODO
-\mytodo{Continue here}
 \section{Implementation of an offline scheduler in XKAAPI's runtime}
-+ Kaapi scheduling
-\\
-+ Perfmodel 
-\\
-+ Adaptation (algo)
-\\
-+ Importanc of the cost
+\label{sec:impl}
+\mytodo{If needed, reduce these two paragraphs}
+
+By default, XKAAPI uses an online scheduler and compute data dependencies in a
+lazy way, nevertheless to study the impact of communications and to run
+structural algorithms, we have decided to work with an offline scheduler.
+However the online heuristic work with actual time when the offline one uses
+predicted times thus only the first one is able to adapt to unexpected effects
+such as contention. XKAAPI's scheduler provides various heuristics, among
+them, we can find an online adaptation of the HEFT algorithm. The main
+difference between this online version and the original one is that the first
+one cannot sort the ready tasks as the DAG is not fully known.
+
+At first, we have compared the online adaptation of the HEFT algorithm with an
+offline version, using linear algebra applications, as this heuristic do not
+consider the communication times as much as the original one.  Then we have
+tried the static scheduler with and without a clustering phase before the HEFT
+algorithm to take even more the communications into account. 
+
+\subsection{XKAAPI scheduler and performance model}
+\label{sec:impl-kaapi}
+
+XKAAPI has an API for writing scheduling heuristics, however as it is designed
+for online algorithms this interface is quite limited. We can basically write
+three callbacks methods, the first is launched during the initialization of
+the runtime before the execution of the program. The second one is called each
+time a tasks is ready to be executed and must return the processor on which
+the tasks should be run. The last one is called when a processor wants to
+steal a task from another and must return the task to be stolen.
+
+Although this API is minimalistic, as we can extract the DAG from the ready
+tasks list during the initialization, we are able to run an offline scheduler
+during this phase and apply its decision when the runtime calls the
+\texttt{push} and \texttt{steal} functions. However this interface do not
+enable us to force the order of execution of two tasks. Thus we need to add
+some (empty) internal tasks to enforce dependencies between tasks which belong
+to different clusters.
+
+XKAAPI have also a performance model which provide for each task a prediction
+of its execution time on a each processor. This model can also estimate the 
+time needed to transfer $n$ bytes of data from one processor to an other. This
+predictions are made from the traces of one (or many) previous calibration
+runs. We will discuss the impact of these previous runs an how this model can
+be biased in section \ref{sec:exp}. It is important to notice that even the
+online adaptation of HEFT uses this performance model.
+
+\mytodo{Continue here}
+\subsection{Offline scheduling}
+\label{sec:impl-off}
+By default, in XKAAPI, each processor has a part of the work in his queue of
+tasks, nevertheless the XKAAPI's C++ API allow to spawn tasks with the keyword
+\texttt{SetStaticSched} which force XKAAPI to maintain a centralized list of
+ready tasks. As each task has a pointer to all its successors, the
+dependencies graph is known within the runtime. However as the convex cluster
+algorithm require a test of the relationship between almost every pairs of
+vertices of the DAG,  with this pointer based representation, computing these
+relationships can be costly. Therefore the first step of our static scheduler
+is to extract the DAG into an adjacency matrix and to run a Warshall Algorithm
+which compute all the parenthood relations. Although this algorithm have a
+worst case in $O(|V|^3)$ for a graph $G=(V,E)$, and a mean case in $O(|V|^2)$
+it is worthwhile as it allow us to know in constant time if two nodes are
+related or not.
+
+Once these dependencies are computed, we are able to run our implementation of
+the convex cluster algorithm (see algorithm \ref{algo:conv-clust}). The
+original convex cluster algorithm select two independent random nodes and use
+them to divide the group into four partitions $A$ and $A^{\sim}$ which are
+independent, their predecessors $A^<$ and successors $A^>$. Once these
+partitions are computed, either the smallest of $A$ and $A^{\sim}$ is large
+enough and all the partition are recursively divided, or they are all grouped
+into one cluster. 
+
+Our implementation is close to this algorithm however as it is designed for a
+theoretical machine with an unbounded number of identical processors, it
+requires a few adjustments, for example in the original version the recursion
+stops when the partition size is less than twice the communication cost. As we
+do not have a unitary communication cost, we have decided to fix a maximal
+size for a cluster and to stop the recursion when a cluster is smaller than
+this size (see line \ref{algop:rec-stop}). Then, the clusters are mapped on the
+processors using the HEFT algorithm. 
+
+\begin{algorithm}[htb]
+    \centering
+    \caption{Convex cluster}
+    \label{algo:conv-clust}
+    \begin{algorithmic}[1]
+        \Function{Extract\_clusters}{Graph $G=(V,E)$}
+        \State $Part \gets NULL$
+        \State $CurMax \gets 0$
+        \For{$rdt \in  [0 .. MaxRandomTry ]$ }\label{algop:main-loop}
+        \State $pivot \gets RandomNode(G)$
+        \State
+        $<A,A^{\sim},A^<,A^>>=Decompose\_4\_parts(G,pivot)$\\\label{algop:init-part}
+        \Comment Decompose G into four partitions $pivot$, nodes independent from $pivot$,\\ 
+        \Comment $pivot$'s ancestors and $pivot$'s successors\\
+        \Comment see figure \ref{fig:conv-decomp1}, \textbf{Cost: $O(|V|)$}
+        \State $Update\_partitions(<A,A^{\sim},A^<,A^>>)$
+        \\\label{algop:update-part}
+        \Comment $A^<$ and $A^>$ becomes predecessors  (respectively successors)\\
+        \Comment of all nodes from $A$ and $A^{\sim}$, see figure \ref{fig:conv-decomp2} \\
+        \Comment \textbf{Cost:$(|A^<| +
+        |A^>| )*|A^{\sim}| = O(|V|^2)$}
+        \If{$MAX(|A|,|A^{\sim}|) > CurMax$} \label{algop:part-choice}
+        \Comment We have found a better decomposition
+        \State $CurMax \gets MAX(|A|,|A^{\sim}|)$
+        \State $Part \gets <A,A^{\sim},A^<,A^>>$
+        \EndIf
+        \EndFor
+        \ForAll{$p \in Part$}
+        \If{$|p| > MaxClusterSize$}\label{algop:rec-stop}
+        \State $Extract\_Clusters(p)$
+        \Comment Divide the partition if big enough
+        \Else
+        \State $Add\_Cluster(p)$
+        \Comment Save the cluster
+        \EndIf
+        \EndFor
+        \EndFunction
+    \end{algorithmic}
+\end{algorithm}
+
+\begin{figure*}[tb]
+    \centering
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{conv-decomp0.png}
+        \caption{Original graph.}
+        \label{fig:conv-decomp0}
+    \end{subfigure}
+    ~
+    \begin{subfigure}{0.27\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{conv-decomp.png}
+        \caption{\texttt{Decompose\_4\_parts()}}
+        \label{fig:conv-decomp1}
+    \end{subfigure}
+    ~
+    \begin{subfigure}{0.27\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{conv-decomp2.png}
+        \caption{\texttt{Update\_Partitions()}}
+        \label{fig:conv-decomp2}
+    \end{subfigure}
+    \caption{Decomposition and update step of convex cluster algorithm.}
+    \label{fig:conv-decomp}
+\end{figure*}
+
+
+In addition, some experiments showed that the original criterion used to
+determine which clustering was the best among the random test gave unstable
+performances. Hence we have decided to change it to keep always the clustering
+giving the largest cluster (see line \ref{algop:part-choice}), and we have
+shown that this heuristic gave better results. Finally, we choose to
+recursively divide each individual clusters if it is large enough (line
+\ref{algop:rec-stop}) while the original algorithm divide either all the
+clusters or none of them.
+
+The two important (and costly) steps of this algorithm are the initial
+decomposition into four clusters, and their update to keep the clusters
+balanced.  Starting from the graph shown on figure \ref{fig:conv-decomp0}, we
+choose randomly a pivot (the node $7$) and we put all the others nodes in one
+of the three groups its predecessors $A^<$, its successors $A^>$ all the
+others $A^{\sim}$. At the end of this step we have the clustering displayed on
+figure \ref{fig:conv-decomp1}. As we can know in $O(1)$ the relationship
+between two nodes, this step costs only $O(|V|)$ comparisons. During the second
+step, we compare each nodes of $A^<$ and $A^>$ with the nodes of $A^{\sim}$ to
+determine the common predecessor (resp successors) of $A$ and $A^{\sim}$ keep
+their initial placement, the others are moved in the group $A$.  By this way
+we obtain the clustering presented on figure \ref{fig:conv-decomp2}. The
+second step has a cost of:
+$$C=(|A^>|+|A^<|)*|A^{\sim}|$$ 
+we know that at the end of the first step $|A|=1$ which implies: 
+$$|A^>|+|A^<|+|A^{\sim}|=|V|-1$$
+thus:
+$$C=(|V|-1-|A^{\sim}|)*|A^{\sim}|$$ 
+The two terms are bounded by $|V|$ so we have: 
+$$C\leq|V|^2$$
+and so if $|A^{\sim}|=\frac{|V|}{2}$,
+$$C=(|V|-1-\frac{|V|}{2})*\frac{|V|}{2}=\left(\frac{|V|}{2}\right)^2-\frac{|V|}{2}$$
+hence we have: 
+$$C=O(|V^2|)$$ 
+Finally, if we assume that the clusters are balanced it takes
+$log\left(\frac{|V|}{MaxClusterSize}\right)$ calls to stop the recursion, as
+the two first step are repeated $MaxRandomTry$ times, the
+cost of our implementation is:
+$$O\left(MaxRandomTry*|V|^2*log\left(\frac{|V|}{MaxClusterSize}\right)\right)$$
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.18\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{conv-internal.png}
+        \caption{Graph after adding the internal tasks.}
+        \label{fig:conv-int}
+    \end{subfigure}
+    ~
+    \begin{subfigure}{0.15\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{conv-clust.png}
+        \caption{Cluster graph.}
+        \label{fig:conv-clust}
+    \end{subfigure}
+    \caption{Final transformations from a graph of tasks to a graph of
+    clusters.}
+    \label{fig:conv-end}
+\end{figure}
+
+As the clustering phase aim of increasing the grain of the graph, we need to
+be sure that each cluster will behave as one big task. Therefore in the
+runtime, we have to add some empty synchronization tasks at the beginning and
+at the end of each clusters as shown in figure \ref{fig:conv-int} (white
+diamond shaped nodes). Indeed with the clusters of the figure
+\ref{fig:conv-decomp2}, without these tasks,  as XKAAPI use a work stealing
+algorithm to execute a tasks as soon as it is ready, if the clusters $A^<$ and
+$A^{\sim}$ are executed on the same processor, the second one might start
+before the end of the first, delaying the execution of the cluster $A$.
+Although these synchronization tasks are empty, they increase the size of the
+actual DAG and they force the runtime to execute more instructions, hence we
+will discuss their impact and show that the overhead induced is negligible in
+section \ref{sec:exp-exp}\todo{change if exp not shown}. When the DAG of
+clusters has been computed, we can find the mapping between the clusters and
+the processors according to the HEFT algorithm for instance. 
+
+This two step have a cost $\leq |V^2|$ hence our offline scheduler has a
+theoretical worst case cost in $O(|V|^3)$ due to the Warshall algorithm,
+however the mean case cost is still $O(log(|V|)*|V|^2*MaxRandomTry)$ (due to
+the convex cluster algorithm).  Although this cost is quite high, in some
+domains such as physical simulation or signal analysis, applications are often
+iterative and regular. This means that the same parallel code has the
+opportunity to be executed several times in a row using the same schedule.
+Hence we can amortize that initial cost. As our aim is to study the impact of
+communication times, we will not try to amortize this initial cost in the
+following experiments and we will separate it from the execution times in our
+results.
+
 \section{Analysis and reduction of the communication times}
+\label{sec:exp}
+\mytodo{Continue here}
+\subsection{Experimental setup}
+\label{sec:exp-set}
 + Machines
-\\
+\subsection{Experiments}
+\label{sec:exp-exp}
 + Off / on
 \\
 + Convex
 \\
 + Calibration
 \section{Conclusions and future work}
+\label{sec:cncl}
 + Complex heuristic helps, but need a good perfmodel, and cost a lot
 \\
 => reuse a scheduling 

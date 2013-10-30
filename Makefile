@@ -18,6 +18,7 @@ ConvexGpu.pdf: ConvexGpu.tex $(BIB) $(PLOTOUTPUT) $(DOTOUTPUT)
 		bibtex $(patsubst %.tex,%.aux,$<) 
 		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
 		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
+		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
 
 #presentation.pdf: presentation.tex $(BIB) $(PLOTOUTPUT) $(DOTOUTPUT)
 #		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
