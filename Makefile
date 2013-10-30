@@ -36,7 +36,7 @@ ConvexGpu.pdf: ConvexGpu.tex $(BIB) $(PLOTOUTPUT) $(DOTOUTPUT)
 
 clean :
 	rm -f texput.log fit.log *.bbl *.blg $(TEXLOG) *.aux *.dvi *.out *.toc\
-		*.snm *.nav $(IMGFOLDER)/*-eps-converted-to.pdf* $(PLOTTEX) $(DOTOUTPUT)\
+		*.snm *.nav *.tdo $(IMGFOLDER)/*-eps-converted-to.pdf* $(PLOTTEX) $(DOTOUTPUT)\
 		$(PLOTOUTPUT)
 
 mrproper: clean

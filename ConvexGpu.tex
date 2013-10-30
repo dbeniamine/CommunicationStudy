@@ -1,12 +1,19 @@
 %!TEX encoding=UTF-8 Unicode
 
-\documentclass[10pt, conference, compsocconf]{IEEEtran}
+\documentclass[10pt, conference, compsocconf,pdftex,usenames,dvipsnames]{IEEEtran}
 
 %=========================encodage fontes et langue=============================
 
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 \usepackage[T1]{fontenc}    % (pour les accents)
+
+%===============================================================================
+
+%========================= Todo notes  =========================================
+
+\usepackage{todonotes}
+\newcommand{\mytodo}[1]{\todo[inline]{#1}}
 
 %===============================================================================
 
@@ -32,7 +39,7 @@ bookmarksopen=true}
 
 %==========================inclusion d'images===================================
 
-\usepackage[pdftex]{graphicx} % \includegraphics
+%\usepackage[pdftex]{graphicx} % \includegraphics
 \graphicspath{{./img/}}
 %\usepackage[caption=false]{caption}
 \usepackage[caption=false,font=footnotesize]{subfig}
@@ -44,7 +51,7 @@ bookmarksopen=true}
 %\usepackage{paralist} % listes : enumerate, itemize
 %\frenchbsetup{StandardLists=true} %pour avoir des listes avec des points
 
-\usepackage[usenames,dvipsnames]{color} %de la couleur
+%\usepackage[usenames,dvipsnames]{color} %de la couleur
 
 %\usepackage{appendix} %Annexes
 
@@ -70,6 +77,7 @@ applications scheduling using KAAPI }
 %==========================page de présentation================================
 
 \maketitle%affichage du titre
+\mytodo{Full Rewrite when text is complete}
 \begin{abstract}
     High Performance Computing machines use more and more Graphical Processing
     Units as they are very efficient for homogeneous computation such as
@@ -130,18 +138,20 @@ doesn't scale for current HPC computers.
 
 Earliest Task First\cite{hwang1989scheduling} is an adaptation for a finite
 number of identical processors with a unitary communication cost between each
-couples of processors and without contention.  This algorithm provide a bound
+couples of processors and without contention. While some tasks aren't
+scheduled, the algorithm try to map the earliest task that can be executed on
+the processor which minimize it starting time. This algorithm provide a bound
 of $\omega\leq(2+c)\omega^*$ where $c$ is the maximum cost of one
 communication.  
-%%Description of the Idea here
 
-Heterogeneous Earliest Finish Time \cite{topcuoglu2002performance} is also
-based on the list algorithm nevertheless, it allow a processor to be idle when
-a task is ready to be executed. 
-%%%%%%More precise spec of HEFT here
-Hence it doesn't provide any bound on the
-execution time moreover recent work have shown that the worst case can provide
-a makespan $\omega \geq \frac{m}{2}\omega^*$ where $m$ is the number of tasks
+Heterogeneous Earliest Finish Time \cite{topcuoglu2002performance}  is a two
+steps algorithm: first it sort all tasks by non increasing upward rank
+(outgoing mean communications and executions time). Then it assign each tasks
+to the processor which minimize its finish time. This algorithm is not exactly
+a list algorithm as it allow a processor to remain idle while a task is ready
+to be executed.  Hence it doesn't provide any bound on the execution time
+moreover recent work have shown that the worst case can provide a makespan
+$\omega \geq \frac{m}{2}\omega^*$ where $m$ is the number of tasks
 \cite{Kedad-SidhoumMonnaMounieEtAl2013}. Despite this results, the HEFT
 algorithm is widely used (by StarPU and XKAAPI amongst others), and give some
 good results in many case\cite{ferreiralima:hal-00735470}. Nevertheless, the
@@ -183,7 +193,7 @@ execution times to determine if two clans have to be merged or not.
 
 \begin{figure}[htb]
     \centering
-    \includegraphics[width=0.3\textwidth]{conv.png}
+    \includegraphics[width=0.33\textwidth]{conv.png}
     \caption{Convex and non convex group of tasks.}
     \label{fig:conv}
 \end{figure}
@@ -201,27 +211,38 @@ A theoretical comparison\cite{khan1994comparison} between the algorithms DSC,
 MCP (Modified Critical Path, similar to DSC), MH, HU (lists algorithms) and
 CLANS have shown that CLANS is robust and efficient for a large and diverse
 set of graphs. All the others algorithms give very bad performances for graphs
-with a low ratio computation over communications (also called grain).
+with a low ratio computation over communications (also called grain). 
 
-To study the impact of communication times, we want to reduce the grain of
-the DAG by managing clusters as if they were large tasks. As  the dataflow
-model implemented by XKAAPI doesn't allow cyclic dependencies between tasks,
-the only algorithm which fits our needs is the convex clustering. Hence we
-will implement this algorithm inside XKAAPI, and we are going to combine it
-with the HEFT algorithm to understand the impact of communication times on a
-scheduling. 
+\subsection{Key Issues}
 
-%%%%%
-\textbf{TODO}
-\\
+Although the GPUs are able to reduce substantially the execution time of
+some tasks, we need to transfer data from the main memory to them before
+the execution. Previous work\cite{ferreiralima:hal-00735470} have shown
+that it is possible to reduce the impact these communications costs by
+overlapping them with computation and by using sophisticated scheduling
+algorithms such as HEFT.  However, this work have also highlighted the
+fact that some contention can occur on machine with many GPUs linked to
+the processors by an interconnection network.
 
-\subsection{Key Issue}
-All these algorithms are efficient when the grain is high, therefore in this study we
-focus on very fine grain applications. 
+In this study, we will use machines with one or several GPUs, aiming to
+show and to measure the impact of the communication times on the
+scheduling of HPC applications. As all the list scheduling algorithms cited
+before are efficient for coast grain applications, we have focused our
+analysis on very fine grain applications. 
 
-=> Cncl Convex + offline HEFT Study impact of comm / contention
+To reach that goal, we have implemented a static scheduler and several
+heuristics within the parallel runtime XKAAPI. We have combined list
+scheduling algorithms and clustering heuristics to reduce the impact of
+communications. Using our scheduler, we have led an experimental study
+showing that the offline version of HEFT can give a gain of $59\%$
+compared to the makespan of the online one when the volume of
+communications is large enough. Moreover, using a clustering algorithm
+before HEFT, we have reduced the makespan of one scheduling up to $64\%$
+compared to the online HEFT.
+
 
 %%%TODO
+\mytodo{Continue here}
 \section{Implementation of an offline scheduler in XKAAPI's runtime}
 + Kaapi scheduling
 \\
@@ -264,6 +285,7 @@ focus on very fine grain applications.
 %\appendix{ \textbf{Annexe }}
 
 %===============================================================================
-
+\mytodo{Remove the todo list}
+\listoftodos
 \end{document}
 
