@@ -5,8 +5,8 @@ OUTPUT=$(SRC:.tex=.pdf)
 TEXLOG=$(SRC:.tex=.log)
 DOTSRC=$(wildcard $(IMGFOLDER)/*.dot)
 DOTOUTPUT=$(DOTSRC:.dot=.png)
-PLOTSRC=$(wildcard *.plot)
 PLOTSRC=$(wildcard $(IMGFOLDER)/*.plot)
+PLOTOUTPUT=$(PLOTSRC:.plot=.eps)
 PLOTTEX=$(PLOTSRC:.plot=.tex)
 #bibliography file
 BIB=ConvexGpu.bib

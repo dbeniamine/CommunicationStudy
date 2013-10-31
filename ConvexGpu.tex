@@ -37,6 +37,8 @@ bookmarksopen=true}
 \usepackage[cmex10]{amsmath} 
 \usepackage{array} % tableaux pour les matrices
 
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
 %===============================================================================
 
 %==========================inclusion d'images===================================
@@ -54,6 +56,7 @@ bookmarksopen=true}
 \makeatother
 \usepackage{dblfloatfix}
 
+\usepackage{epstopdf}
 
 %===============================================================================
 
@@ -86,6 +89,7 @@ applications scheduling using KAAPI }
 \begin{document}
 
 %==========================page de présentation================================
+
 
 \maketitle%affichage du titre
 \begin{abstract}
@@ -123,6 +127,7 @@ applications scheduling using KAAPI }
 %===============================================================================
 
 %=========================début réel du document==============================
+\mytodo{Verify all hyperefs}
 \section{Introduction}
 
 To obtain portable performances, some runtimes such as XKAAPI
@@ -378,21 +383,21 @@ processors using the HEFT algorithm.
     \centering
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{conv-decomp0.png}
+        \includegraphics[width=0.7\textwidth]{conv-decomp0.png}
         \caption{Original graph.}
         \label{fig:conv-decomp0}
     \end{subfigure}
     ~
     \begin{subfigure}{0.27\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{conv-decomp.png}
+        \includegraphics[width=0.7\textwidth]{conv-decomp.png}
         \caption{\texttt{Decompose\_4\_parts()}}
         \label{fig:conv-decomp1}
     \end{subfigure}
     ~
     \begin{subfigure}{0.27\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{conv-decomp2.png}
+        \includegraphics[width=0.7\textwidth]{conv-decomp2.png}
         \caption{\texttt{Update\_Partitions()}}
         \label{fig:conv-decomp2}
     \end{subfigure}
@@ -440,26 +445,6 @@ the two first step are repeated $MaxRandomTry$ times, the
 cost of our implementation is:
 $$O\left(MaxRandomTry*|V|^2*log\left(\frac{|V|}{MaxClusterSize}\right)\right)$$
 
-\begin{figure}
-    \centering
-    \begin{subfigure}{0.18\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{conv-internal.png}
-        \caption{Graph after adding the internal tasks.}
-        \label{fig:conv-int}
-    \end{subfigure}
-    ~
-    \begin{subfigure}{0.15\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{conv-clust.png}
-        \caption{Cluster graph.}
-        \label{fig:conv-clust}
-    \end{subfigure}
-    \caption{Final transformations from a graph of tasks to a graph of
-    clusters.}
-    \label{fig:conv-end}
-\end{figure}
-
 As the clustering phase aim of increasing the grain of the graph, we need to
 be sure that each cluster will behave as one big task. Therefore in the
 runtime, we have to add some empty synchronization tasks at the beginning and
@@ -476,6 +461,28 @@ section \ref{sec:exp-exp}\todo{change if exp not shown}. When the DAG of
 clusters has been computed, we can find the mapping between the clusters and
 the processors according to the HEFT algorithm for instance. 
 
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includegraphics[width=0.7\textwidth]{conv-internal.png}
+        \caption{Graph after adding the internal tasks.}
+        \label{fig:conv-int}
+    \end{subfigure}
+    ~
+    \begin{subfigure}{0.1\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{conv-clust.png}
+        \caption{Cluster graph.}
+        \label{fig:conv-clust}
+    \end{subfigure}
+    \caption{Final transformations from a graph of tasks to a graph of
+    clusters.}
+    \label{fig:conv-end}
+\end{figure}
+
+
+
 This two step have a cost $\leq |V^2|$ hence our offline scheduler has a
 theoretical worst case cost in $O(|V|^3)$ due to the Warshall algorithm,
 however the mean case cost is still $O(log(|V|)*|V|^2*MaxRandomTry)$ (due to
@@ -490,17 +497,301 @@ results.
 
 \section{Analysis and reduction of the communication times}
 \label{sec:exp}
-\mytodo{Continue here}
+Using our scheduler, we have studied the impact off communications on two
+different machines which are described in section \ref{sec:exp-set}. For this
+experimental analysis we have compared the online HEFT with our offline
+implementation and we have combined it with a clustering phase.
+
 \subsection{Experimental setup}
 \label{sec:exp-set}
-+ Machines
-\subsection{Experiments}
-\label{sec:exp-exp}
-+ Off / on
-\\
-+ Convex
-\\
-+ Calibration
+
+\begin{table*}
+        \centering
+        \scalebox{0.78}
+        {
+            \begin{tabular}{|C{1.7cm}|c|C{1.1cm}|C{1.3cm}|C{1.2cm}|C{1.2cm}|C{1.6cm}|
+                C{1.3cm}|C{1.4cm}|C{1.2cm}|C{1.6cm}|C{1.4cm}|C{1.8cm}|}
+                \hline
+                \textbf{Name} & \textbf{\#CPU} & \textbf{\#Core / CPU} 
+                &\textbf{ CPU vendor} & \textbf{CPU model}  &
+                \textbf{CPU freq (Ghz)} & 
+                \textbf{Memory (Gio)} & \textbf{\#GPU} & 
+                \textbf{GPU vendor} & \textbf{GPU model} &  
+                \textbf{GPU memory}&\textbf{GPU clock freq (Ghz)} 
+                &\textbf{ CUDA capability} \\
+                \hline
+                Mapuche & 1 & 4 & Intel & Core I7-2600 & 3.4 & 8 & 1 & Nvidia &
+                NVS 300 & 512 MB DDR3& 1.23 &1.2 \\
+                \hline
+                IdGraf & 2 & 6 & Intel & Xeon X5650 & 2.67 & 72& 8 & Nvidia &
+                Tesla C2050 & 3GB GDDR5 & 1.15 & 2.0 \\
+                \hline
+            \end{tabular}
+        }
+    \caption{Hardware used for the experiments.}
+    \label{table:machines}
+\end{table*}
+
+All the experiment presented in this study, have been run on one or the other
+of the two following machines:
+Idgraf\footnote{\url{http://digitalis.inria.fr/index.php/Usage\#idgraf}} a HPC
+workstation with 12 cores and 8 GPUs managed by Grid5000 and Mapuche a
+personal workstation with 4 CPUs and one GPU. The hardware of these machines
+is described more precisely in table \ref{table:machines}, for both machines
+we hyper-threading and thermal throttling are turned off. 
+
+Idgraf runs on a Debian squeeze with a Linux kernel
+3.2.0.2-amd64. Mapuche's Operating System is an Ubuntu 12.10 LTS with a
+Linux kernel 3.2.0-40. 
+
+
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.48\textwidth]{idgraf-topo-2012.pdf}
+    \caption{Idgraf's topology\cite{gautierxkaapi}.}
+    \label{fig:idgraf}
+\end{figure}
+
+It is important to note that Idgraf has a hierarchical topology as shown in
+figure \ref{fig:idgraf}, the eight GPUS are split over two PCI Bridge which
+are linked together. Each bridge manage 4 GPUs separated in two groups which
+belong to two different switches. With this particular topology, simultaneous
+communications involving several GPUs might led to contention on the switches,
+this contention will be highlighted in section \ref{sec:exp-exp}.
+
+Concerning our algorithms, unless stated otherwise, we use the following
+parameters:\\
+$NbRandomTries=\sqrt{|V|}$, $MaxClusterSize=10$, and for the
+studied applications\\
+$MatrixSize=1000$, $BlocSize=MatrixSize/10$.
+
+For each curve presented in the following sections, each points represent the
+mean runtime of at least 15 different runs with the same parameters, and a
+confidence interval of $95\%$ is displayed as an error bar.
+
+Finally, by default the execution time presented for the algorithms HEFT
+offline, and convex cluster correspond to the total time minus the overhead
+induced by the static scheduler.
+
+
+\subsection{Impact of the performance model}
+\label{sec:exp-exp-perf}
+\mytodo{read, Change susbsubsection titles}
+
+There are two important differences between the online and the offline version
+of the HEFT algorithm, the first one is that the offline algorithm sorts the tasks
+by upward rank, which mean that a task priority is related to the length of
+the chain of tasks that depends on it. As the online version does not have a
+global vision of the DAG, it maps tasks to processors as soon as they are
+ready, without sorting them. However the second difference is that the offline
+algorithm only uses theoretical execution and communication times while the
+online one can react on the fly to varying execution times. Hence if the model
+is erroneous, he will be able to adapt the next decisions. 
+
+\begin{figure*}[bt]
+    %\begin{adjustwidth}{}{-3cm}
+        \centering
+        \begin{subfigure}{0.4\textwidth}
+            \hspace{-20pt}
+            \scalebox{0.7}{
+                \input{img/mat-size-mapuche-noInt-calibrate.tex}
+            }
+            \caption{Comparison on Mapuche.}
+            \label{fig:OnOffMapuche}
+        \end{subfigure}
+        \hspace{15pt}
+        \begin{subfigure}{0.55\textwidth}
+            \scalebox{0.7}{
+                \input{img/mat-size-idgraf-8gpu-cal8GPU.tex}
+            }
+            \caption{Comparison on Idgraf.}
+            \label{fig:OnOffIdgraf}
+        \end{subfigure}
+    %\end{adjustwidth}
+    \caption{Online vs offline HEFT scheduling, on Cholesky reduction, on both
+    machines.}
+    \label{fig:OnOff}
+\end{figure*}
+
+To show these differences, we have compared the makespan of a Cholesky
+reduction on our two machines using all the available resources  with the two
+versions of HEFT. The results are displayed in figure \ref{fig:OnOff}. The
+first important point is that, on Mapuche (figure \ref{fig:OnOffMapuche}), the
+offline algorithm provide always an equivalent or better makespan than the
+online one. In the best case we have observed a gain of $59\%$. This
+result confirms our first idea: we are in a configuration where there are many
+communications and not enough computations to overlap them. Hence, we can
+obtain a substantial gain by using an heuristic aware
+of these communications. 
+
+\begin{figure}[htb]
+        \centering
+            \scalebox{0.6}{
+                \input{img/gpu-idgraf-c0-cal1GPU-off.tex}
+            }
+    \caption{Effect of the number of GPU used, on the execution time of a 
+    Cholesky reduction, on Idgraf.}
+    \label{fig:Contention}
+\end{figure}
+
+Nevertheless, the same experiment on Idgraf gives a different result, indeed
+we can see in figure \ref{fig:OnOffIdgraf} that if we still have a gain of
+$17.7\%$ with a matrix of size $800$. However, when we increase this size, the
+gap shrinks and finally, when it exceed $1400$ the online algorithm gives
+better results up to $10.2\%$. As the main difference between the two machines
+is the number of GPUs and as the advantage of the online scheduler compared to
+the offline one is the capacity to adapt to a biased model, our first
+hypothesis, is that a contention which cannot be anticipated by the model
+appears on the PCI buses (see figure \ref{fig:idgraf}) when we use all the
+GPUs. 
+
+\begin{figure}[htb]
+        \scalebox{0.6}{
+    \centering
+    \input{img/mat-size-idgraf-8gpu-cal1-8GPU.tex}
+        }
+    \caption{Effects of the number of GPUs used for calibration on the
+    execution time of a Cholesky reduction on Idgraf.}
+    \label{fig:ContentionTrick}
+\end{figure}
+
+\mytodo{update this par}
+To prove this hypothesis, we have run the same experiment on one, two, four
+and eight GPUs with both algorithms. The results, shown in figure
+\ref{fig:ContentionOnline} and figure \ref{fig:ContentionOffline} shows that
+for both algorithms, when we use four or more GPUs, the makespan increase
+although our logs shown that we are using all the available GPUs.
+%
+%Furthermore, if the offline algorithm give better results with only one GPU
+%(see figure \ref{fig:Contention1}), with eight we have the opposite result
+%(see figure \ref{fig:Contention8}).
+
+In addition, we have found by looking at our experiments logs that for many
+tasks, the predicted execution times (i.e. the execution time extracted from
+the calibration runs) were increasing as we were using more GPUs. As the eight
+GPUs are identical, this rise means that our performances model include some
+communications in the execution times and these communications takes more time
+when we use all the available GPUs. Moreover as this contention appears in our
+execution times, our algorithms were biased. However, we can easily avoid this
+bias by performing our calibration run with only one GPU. Doing this, we are
+able to reduce the execution time of $24.7\%$ on 8 GPUs as we can see on
+figure \ref{fig:ContentionTrick}. All these results validate our hypothesis,
+there is some contention on the PCI buses.
+
+Finally, we have clearly shown that the offline algorithm is able to give
+better results (up to $59\%$ in our experiments) by avoiding some
+communications. However, if the model does not fit to the reality (for example
+when there is some contention), an online algorithm is more adaptated. Hence
+we can think about implementing an hybrid scheduler which takes initial
+decisions statically and adapts (or recompute them) if the actual execution
+times does not match to the expected ones.
+
+\subsection{Effects of the clustering algorithm}
+\label{sec:exp-exp-clust}
+\mytodo{Remove this par}
+
+In the following experiments, we have increased the grain of the DAG using the
+convex cluster algorithm before running the offline HEFT algorithm. Using this
+combination, we will show that we can have even a better gain than with the
+offline or the online algorithm only.
+
+%\begin{figure*}[tb]
+%    %\begin{adjustwidth}{}{-3cm}
+%        \centering
+%        \begin{subfigure}{0.4\textwidth}
+%            \hspace{-20pt}
+%            \scalebox{0.7}{
+%                \input{img/mat-size-c10-mapuche.tex}
+%            }
+%            \caption{Mapuche.}
+%            \label{fig:MatMapuche}
+%        \end{subfigure}
+%        \hspace{15pt}
+%        \begin{subfigure}{0.55\textwidth}
+%            \scalebox{0.7}{
+%                \input{img/mat-size-bm20-m600_1100-4GPU-cal1GPU-idgraf.tex}
+%            }
+%            \caption{Idgraf, $BlocSize=MatrixSize/20$.}
+%            \label{fig:MatIdgraf}
+%        \end{subfigure}
+%    %\end{adjustwidth}
+%
+%    \caption{Square matrix dimension impact on convex cluster and HEFT
+%    algorithm, on a Cholesky reduction, on both machines.}
+%    \label{fig:Mat}
+%\end{figure*}
+
+Our first experiment on the convex cluster algorithm aim at showing for which
+matrix size this heuristic can be useful. We can see in figure
+\ref{fig:MatMapuche} that as for the offline HEFT, the convex cluster
+algorithm give better results for small matrices, with a gain up to $28.5\%$
+on Mapuche with a matrix size of $800*800$. Nevertheless, there is still one
+parameter of the convex cluster algorithm that we have not tested yet which is
+the maximum cluster size. Following experiments will show that with an
+appropriate size of cluster, we can get a even better makespan.
+
+On idgraf, to obtain a better scheduling, we had to increase the volume of
+communications by decreasing the bloc size. With this parameter, the convex
+clustering give a better schedule than the online HEFT as we can see in fiugre
+\ref{fig:MatIdgraf}.  The best case tested in our experiment is for a matrix
+size of $600*600$ where we reduce the makespan of $64\%$.
+
+From this experiment, it is clear that with small matrices, we can highly
+improve the scheduling obtained by the online algorithm, hence we will use a
+small matrix $1000*1000$ for the next experiment and we will keep the same bloc
+sizes as for this experiments. Finally, we are going to study the impact of the
+maximal size of one cluster on the scheduling.
+
+\begin{figure*}[tb]
+    %\begin{adjustwidth}{}{-3cm}
+        \centering
+        \begin{subfigure}{0.4\textwidth}
+            \hspace{-20pt}
+            \scalebox{0.7}{
+                \input{img/clust-size-c0-80_m1000_b100-improved-log.tex}
+            }
+            \caption{Mapuche.}
+            \label{fig:ClustersMapuche}
+        \end{subfigure}
+        \hspace{15pt}
+        \begin{subfigure}{0.55\textwidth}
+            \scalebox{0.7}{
+                \input{img/clust-size-full-bm20-m1000-4GPU-cal1GPU-idgraf.tex}
+            }
+            \caption{Idgraf, $BlocSize=MatrixSize/20$, $4$GPUs.}
+            \label{fig:ClustersIdgraf}
+        \end{subfigure}
+    %\end{adjustwidth}
+
+    \caption{Effect of the maximum size of clusters on the convex cluster
+    algorithm, on a Cholesky reduction, on both machines.}
+    \label{fig:Clusters}
+\end{figure*}
+
+By increasing the maximum size of a cluster (see algorithm
+page \pageref{algo:conv-clust}, \ref{algo:conv-clust}, line
+\ref{algop:rec-stop}), we increase the grain of the graph and we reduce the
+amount of communications that HEFT has to manage.
+
+Figure \ref{fig:ClustersMapuche} show the results of our last experiment on
+Mapuche, we can see that we need large clusters $\geq 30$ to obtain the maximal
+gain. However if we use a cluster size larger than $70$, it seems that we
+loose to much informations and the HEFT algorithm cannot give an efficient
+scheduling anymore. Finally, we can notice that with $MaxClusterSize=35$ we
+reduce the execution time by $48.7\%$ in comparison to the online HEFT
+algorithm.
+
+In figure \ref{fig:ClustersIdgraf}, we displayed the results of the
+experiment on Idgraf using $4$ GPUs, we can see that the best cluster size is
+quite different than for Mapuche. This difference comes from the fact that as
+Idgraf embed more processors than Mapuche, hence it needs a larger graph (i.e.
+smaller clusters) to use them efficiently. Still, with the convex clustering,
+we can obtain a gain of $32.3\%$ on Idgraf compared to the online one, while
+the offline algorithm only gave a gain of $11.4\%$ (fig
+\ref{fig:ClustersIdgraf}, $MaxClusterSize=0$).
+
+
+
 \section{Conclusions and future work}
 \label{sec:cncl}
 + Complex heuristic helps, but need a good perfmodel, and cost a lot
