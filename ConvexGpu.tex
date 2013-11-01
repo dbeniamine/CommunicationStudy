@@ -13,6 +13,7 @@
 %========================= Todo notes  =========================================
 
 
+%\usepackage[obeyDraft]{todonotes}
 \usepackage{todonotes}
 \newcommand{\mytodo}[1]{\todo[inline]{#1}}
 %===============================================================================
@@ -463,7 +464,7 @@ by is negligible. Once the DAG of clusters has been computed, we can find the
 mapping between the clusters and the processors according to the HEFT
 algorithm for instance. 
 
-\begin{figure}
+\begin{figure}[t!]
     \centering
     \begin{subfigure}{0.24\textwidth}
         \centering
@@ -482,8 +483,6 @@ algorithm for instance.
     clusters.}
     \label{fig:conv-end}
 \end{figure}
-
-
 
 This two step have a cost $\leq |V^2|$ hence our offline scheduler has a
 theoretical worst case cost in $O(|V|^3)$ due to the Warshall algorithm,
@@ -801,8 +800,81 @@ the offline algorithm only gave a gain of $11.4\%$ (fig
 
 
 \section{Conclusions and future work}
-\mytodo{Conclude}
+\mytodo{Re write}
 \label{sec:cncl}
+During this study, we have worked on
+XKAAPI\cite{gautier2007kaapi,gautierxkaapi}, an existing middleware for parallel
+programing in which we have implemented a static scheduler with several
+heuristics. Then, we have used these heuristics to evaluate the impact of
+communication times on the decisions a scheduler should take.
+
+\subsection{Main contributions}
+\label{chap:cncl-contrib}
+
+Our first contribution has been the implementation of a static scheduler using
+a classical list algorithm, Heterogeneous Earliest Finish Time combined to a
+clustering algorithm, convex clusters. We have analysed the cost of our
+scheduler theoretically and we have verified it experimentally.
+
+\mytodo{insist on observations, contention, perfmodel}
+We have focused on applications with a fine grain, where the communication
+times have a huge impact on the total execution time. Using an offline
+algorithm, we have been able to reduce the makespan of an application by
+$59\%$. We have also highlighted some effect of contention on an heterogeneous
+machine and the fact that because of this effect, an online algorithm becomes
+more efficient than the offline ones.
+
+Our study has also shown some limits of the performance model used by XKAAPI
+and we have proposed one technique to reduce their effects on the offline
+algorithms.
+
+Finally we have increased the grain of a DAG using the clustering algorithm
+before running HEFT to obtain a schedule. This way, we have observed a
+substantial gain up to $64\%$ on the makespan, compared to the online HEFT.
+
+However, these results do not take into account the overhead needed to
+run scheduling algorithms. Hence, we still need to work on the ability to reuse a
+schedule to amortize its initial cost. 
+
+To conclude, this study has highlighted the fact that the communication
+times are not negligible when we use some GPUs, moreover we have demonstrated
+that some algorithms from the literature can be used efficiently and combined
+together to reduce the effect of these communications.
+
+\subsection{Future work }
+\label{chap:cncl-work}
+
+It would be interesting to let the user save and reuse a schedule and to 
+experiment our scheduler with iterative applications which runs several times
+in a row the same routine. Hence we should be able to amortize the initial
+cost of our scheduler and to evaluate a global gain.
+
+Additionally, we would like to complete our study by a comparison with some
+others algorithms designed to reduce the impact of communication times such as
+DSC or CLANS. However as explained in section \ref{sec:soa-sched-clust}, these
+algorithms can create a cyclic DAG of clusters which is incompatible with XKAAPI's
+runtime. Hence we might need either to adapt them or to run another algorithm
+after them to merge or cut some clusters to remove the cyclic dependencies.
+
+Finally An interesting perspective would be to design an adaptive algorithm
+able to update the different parameters of the heuristic tested in this study,
+and which combine an initial (offline) schedule with an online tool allowed to
+modify it if the actual times are not close enough to the predictions. Moreover
+using such an algorithm, we could avoid the initial calibration run required
+by our perfomance model.
+
+%\appendix
+\section*{Acknowledgments}
+
+Thanks Thierry Gautier for the figure \ref{fig:idgraf} extracted from the
+paper XKAAPI IPDPS 2013 \cite{gautierxkaapi}.
+
+Experiments presented in this paper were carried out using the Grid'5000
+experimental testbed, being developed under the INRIA ALADDIN development 
+action with support from CNRS, RENATER and several Universities as well 
+as other funding bodies (see \url{https://www.grid5000.fr}).
+
+
 + Complex heuristic helps, but need a good perfmodel, and cost a lot
 \\
 => reuse a scheduling 
