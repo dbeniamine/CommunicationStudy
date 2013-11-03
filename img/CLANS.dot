@@ -1,0 +1,27 @@
+digraph G{
+    node [style="bold,filled",color=black,fillcolor=orange];
+    compoud=true;
+    subgraph cluster1{
+        style=filled;
+        color=lightgrey;
+        label="Independent";
+        1;
+        2;
+        3;
+    }
+    subgraph cluster2{
+        style=filled;
+        color=lightgrey;
+        label="Linear";
+        4->5->6->7;
+    }
+    subgraph cluster3{
+        style=filled;
+        shape=circle;
+        color=lightgrey;
+        label="Primitive";
+        8->10;
+        9->10;
+        9->11;
+    }
+};
