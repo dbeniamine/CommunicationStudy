@@ -59,9 +59,9 @@ bookmarksopen=true}
 
 \usepackage{epstopdf}
 
-%===============================================================================
+%==============================================================================
 
-%==========================listes et mise en page===============================
+%==========================listes et mise en page==============================
 
 %\usepackage{paralist} % listes : enumerate, itemize
 %\frenchbsetup{StandardLists=true} %pour avoir des listes avec des points
@@ -70,7 +70,7 @@ bookmarksopen=true}
 
 %\usepackage{appendix} %Annexes
 
-%===============================================================================
+%==============================================================================
 
 %=========================déclaration de titre=================================
 
@@ -82,10 +82,12 @@ bookmarksopen=true}
     david.beniamine@imag.fr, guillaume.huard@imag.fr}
 }
 
-\title{Study of communications times' impact on heterogeneous
-applications scheduling using XKAAPI }
+\title{Impact of communications time on XKAAPI heterogeneous applications
+scheduling}
+%\title{Study of communications times' impact on heterogeneous
+%applications scheduling using XKAAPI }
 
-%===============================================================================
+%==============================================================================
 
 \begin{document}
 
@@ -96,22 +98,24 @@ applications scheduling using XKAAPI }
 \begin{abstract}
     High Performance Computing machines use more and more Graphical Processing
     Units as they are very efficient for homogeneous computation such as
-    matrix operations. However before using these accelerators, one has to
-    transfer data from the processor to them which can be slow. 
+    matrix operations. However, before using these accelerators, one has to
+    transfer data from the processor to them, which can be slow. 
 
-    In this paper, we have studied the impact of communication times on the
-    makespan of a scheduling.  More precisely, we have focused on machines
+    To study the impact of communications, we  provide the implementation of
+    two offline scheduling algorithms within  XKAAPI's runtime. And we
+    compare these offline scheduler with an online one already implemented in
+    XKAAPI. Our experiments show that, by combining communication aware
+    scheduling algorithms, we can reduce substantially the makespan of a fine
+    grain application. We have discussed the importance of a good performance
+    model for offline algorithms and the limits of XKAAPI's one. Finally we
+    have highlighted the impact of
+    contention on the PCI bus on the makespan of mixed CPU/GPU applications. 
+
+    In this paper, we show the impact of communication times on the
+    makespan produced by a scheduling.  More precisely, we focus on machines
     with many GPUs and on applications with a low ratio of computations over
     communications. 
 
-    During this study, we have implemented two offline scheduling algorithms
-    within  XKAAPI's runtime. We have compared these offline scheduler with an
-    online one already implemented in XKAAPI. Our experiments have shown that,
-    by combining communication aware scheduling algorithms, we can reduce
-    substantially the makespan of a fine grain application. We have discussed
-    the importance of a good performance model for offline algorithms and the
-    limits of XKAAPI's one. Finally we have highlighted the impact of
-    contention on the PCI bus on the makespan of mixed CPU/GPU applications. 
 
 \end{abstract}
 
@@ -122,9 +126,9 @@ applications scheduling using XKAAPI }
 
 
 
-%===============================================================================
+%==============================================================================
 
-%=========================début réel du document==============================
+%=========================début réel du document===============================
 \section{Introduction}
 
 To obtain portable performances, some runtimes such as XKAAPI
@@ -134,7 +138,7 @@ a workstealing algorithm \cite{blumofe1995cilk} to schedule theses tasks on
 the available resources. As it provide a good load balancing, this algorithm
 is quite efficient on homogeneous machines. However nowadays, HPC computers
 includes many GPUs, which implies  costly communications. Hence the basic
-workstealing algorithm which doesn't manage them can provide bad performances.
+workstealing algorithm which does not manage them can provide bad performances.
 
 \subsection{List scheduling algorithms}
 
@@ -145,11 +149,11 @@ true for homogeneous processors and with no communications. In a model with
 heterogenous machines and no communications, this bounds grows to
 $\omega\leq\min(s+2-\frac{2s+1}{n},\frac{n+1}{2})\omega^*$ where $s$ is the
 number of different resources and $n$ the number of processors. Hence it
-doesn't scale for current HPC computers. 
+does not scale for current HPC computers. 
 
 Earliest Task First\cite{hwang1989scheduling} is an adaptation for a finite
 number of identical processors with a unitary communication cost between each
-couples of processors and without contention. While some tasks aren't
+couples of processors and without contention. While some tasks are not
 scheduled, the algorithm try to map the earliest task that can be executed on
 the processor which minimize it starting time. This algorithm provide a bound
 of $\omega\leq(2+c)\omega^*$ where $c$ is the maximum cost of one
@@ -160,7 +164,7 @@ steps algorithm: first it sort all tasks by non increasing upward rank
 (outgoing mean communications and executions time). Then it assign each tasks
 to the processor which minimize its finish time. This algorithm is not exactly
 a list algorithm as it allow a processor to remain idle while a task is ready
-to be executed.  Therefore it doesn't provide any bound on the execution time,
+to be executed.  Therefore it does not provide any bound on the execution time,
 moreover recent work \cite{Kedad-SidhoumMonnaMounieEtAl2013} have shown that
 the worst case can provide a makespan $\omega \geq \frac{m}{2}\omega^*$ where
 $m$ is the number of tasks. Despite this results, the HEFT algorithm is widely
@@ -270,8 +274,8 @@ conclusion and some future work on section \ref{sec:cncl}.
 \label{sec:impl}
 
 By default, XKAAPI uses an online scheduler and compute data dependencies in a
-lazy way. It's scheduler provides various heuristics, among them, we can find an
-online adaptation of the HEFT algorithm. The main difference between this
+lazy way. It's scheduler provides various heuristics, among them, we can find
+an online adaptation of the HEFT algorithm. The main difference between this
 version and the original one is that the first one cannot sort the ready tasks
 as the DAG is not fully known.  Still the online heuristic work with actual
 time when the offline one uses predicted times thus only the first one is able
@@ -325,6 +329,9 @@ worst case in $O(|V|^3)$ for a graph $G=(V,E)$, and a mean case in $O(|V|^2)$
 it is worthwhile as it allow us to know in constant time if two nodes are
 related or not.
 
+\renewcommand{\algorithmiccomment}[1]{\State $\triangleright$ #1}
+
+
 \begin{algorithm}[h!]
     \centering
     \caption{Convex cluster}
@@ -336,18 +343,24 @@ related or not.
         \For{$rdt \in  [0 .. MaxRandomTry ]$ }\label{algop:main-loop}
         \State $pivot \gets RandomNode(G)$
         \State
-        $<A,A^{\sim},A^<,A^>>=Decompose\_4\_parts(G,pivot)$\\\label{algop:init-part}
-        \Comment Decompose G into four partitions $pivot$, nodes independent from $pivot$,\\ 
-        \Comment $pivot$'s ancestors and $pivot$'s successors\\
-        \Comment see figure \ref{fig:conv-decomp1}, \textbf{Cost: $O(|V|)$}
+        $<A,A^{\sim},A^<,A^>> \gets Decompose4(G,pivot)$\label{algop:init-part}
+        \Comment Decompose G into four partitions 
+        \Comment $pivot$, nodes independent from $pivot$, 
+        \Comment $pivot$'s ancestors and $pivot$'s successors fig
+        \ref{fig:conv-decomp1} 
+        %, \textbf{Cost: $O(|V|)$}
+        \\
         \State $Update\_partitions(<A,A^{\sim},A^<,A^>>)$
-        \\\label{algop:update-part}
-        \Comment $A^<$ and $A^>$ becomes predecessors  (respectively successors)\\
-        \Comment of all nodes from $A$ and $A^{\sim}$, see figure \ref{fig:conv-decomp2} \\
-        \Comment \textbf{Cost:$(|A^<| +
-        |A^>| )*|A^{\sim}| = O(|V|^2)$}
+        \label{algop:update-part}
+        \Comment $A^<$ and $A^>$ becomes predecessors 
+        \Comment (resp. successors) of all nodes  
+        \Comment from $A$ and $A^{\sim}$, fig 
+        \ref{fig:conv-decomp2}
+        \\
+        %        \Comment \textbf{Cost:$(|A^<| + |A^>| )*|A^{\sim}| = O(|V|^2)$}
         \If{$MAX(|A|,|A^{\sim}|) > CurMax$} \label{algop:part-choice}
-        \Comment We have found a better decomposition
+        \\
+        %\Comment We have found a better decomposition
         \State $CurMax \gets MAX(|A|,|A^{\sim}|)$
         \State $Part \gets <A,A^{\sim},A^<,A^>>$
         \EndIf
@@ -377,7 +390,7 @@ related or not.
     \begin{subfigure}{0.27\textwidth}
         \centering
         \includegraphics[width=0.7\textwidth]{conv-decomp.png}
-        \caption{\texttt{Decompose\_4\_parts()}}
+        \caption{\texttt{Decompose4()}}
         \label{fig:conv-decomp1}
     \end{subfigure}
     ~
@@ -562,8 +575,9 @@ It is important to note that Idgraf has a hierarchical topology as shown in
 figure \ref{fig:idgraf}, the eight GPUS are split over two PCI Bridge which
 are linked together. Each bridge manage 4 GPUs separated in two groups which
 belong to two different switches. With this particular topology, simultaneous
-communications involving several GPUs might led to contention on the PCie switches,
-this contention will be highlighted in section \ref{sec:exp-exp-perf}.
+communications involving several GPUs might led to contention on the PCie
+switches, this contention will be highlighted in section
+\ref{sec:exp-exp-perf}.
 
 Concerning our algorithms, unless stated otherwise, we use the following
 parameters:\\
@@ -586,13 +600,14 @@ There are two important differences between the online and the offline version
 of the HEFT algorithm, the first one is that the offline algorithm sorts the
 tasks by upward rank, which mean that a task priority is related to the length
 of the chain of tasks that depends on it. As the online version does not have
-a global vision of the DAG, it maps each task to a processor as soon as they are
-ready, without sorting them which can result on bad scheduling choice. However
-the second difference is that the offline algorithm only uses theoretical
-execution and communication times while the online one uses theoretical times
-for predictions but makes it decision at the runtime. Hence if there is some
+a global vision of the DAG, it maps each task to a processor as soon as they
+are ready, without sorting them which can result on bad scheduling choice.
+However the second difference is that the offline algorithm only uses
+theoretical execution and communication times while the online one uses
+theoretical times for predictions but makes it decision at the runtime. Hence
+if there is some
 contention, the online algorithm will see that a processor which should be
-ready isn't and will adapt it's decisions.
+ready is not and will adapt it's decisions.
 
 To show these differences, we have compared the makespan of a Cholesky
 reduction on our two machines using all the available GPUs  with the two
@@ -606,9 +621,9 @@ sizes) , we can obtain a substantial gain by using an heuristic aware of these
 communications. 
 
 \begin{figure}[htb]
-        \addtocounter{figure}{1}
-        \centering
-        \begin{subfigure}{0.5\textwidth}
+    \addtocounter{figure}{1}
+    \centering
+    \begin{subfigure}{0.5\textwidth}
         \scalebox{0.6}{
             \input{img/gpu-idgraf-c0-cal1GPU-off.tex}
         }
@@ -702,23 +717,23 @@ offline or the online algorithm only.
 
 \begin{figure*}[tb]
     %\begin{adjustwidth}{}{-3cm}
-        \centering
-        \begin{subfigure}{0.4\textwidth}
-            \hspace{-20pt}
-            \scalebox{0.7}{
-                \input{img/mat-size-c10-mapuche.tex}
-            }
-            \caption{Mapuche.}
-            \label{fig:MatMapuche}
-        \end{subfigure}
-        \hspace{15pt}
-        \begin{subfigure}{0.55\textwidth}
-            \scalebox{0.7}{
-                \input{img/mat-size-bm20-m600_1100-4GPU-cal1GPU-idgraf.tex}
-            }
-            \caption{Idgraf, $BlocSize=MatrixSize/20$.}
-            \label{fig:MatIdgraf}
-        \end{subfigure}
+    \centering
+    \begin{subfigure}{0.4\textwidth}
+        \hspace{-20pt}
+        \scalebox{0.7}{
+            \input{img/mat-size-c10-mapuche.tex}
+        }
+        \caption{Mapuche.}
+        \label{fig:MatMapuche}
+    \end{subfigure}
+    \hspace{15pt}
+    \begin{subfigure}{0.55\textwidth}
+        \scalebox{0.7}{
+            \input{img/mat-size-bm20-m600_1100-4GPU-cal1GPU-idgraf.tex}
+        }
+        \caption{Idgraf, $BlocSize=MatrixSize/20$.}
+        \label{fig:MatIdgraf}
+    \end{subfigure}
     %\end{adjustwidth}
 
     \caption{Square matrix dimension impact on convex cluster and HEFT
@@ -735,11 +750,11 @@ result by choosing a better maximum size of clusters. Following experiments
 will show that with an appropriate size of cluster, we can get a even better
 makespan.
 
-\mytodo{refaire la courbe \ref{fig:MatIdgraf} et adapter le texte: exp in progress}
-On idgraf, to obtain a better scheduling, we had to increase the volume of
-communications by decreasing the bloc size ($matrixSize/20$). With this
-parameter, the convex clustering give a better schedule than the online HEFT
-as we can see in fiugre \ref{fig:MatIdgraf}.  The best case tested in our
+\mytodo{refaire la courbe \ref{fig:MatIdgraf} et adapter le texte: exp in
+progress} On idgraf, to obtain a better scheduling, we had to increase the
+volume of communications by decreasing the bloc size ($matrixSize/20$). With
+this parameter, the convex clustering give a better schedule than the online
+HEFT as we can see in fiugre \ref{fig:MatIdgraf}.  The best case tested in our
 experiment is for a matrix
 size of $600*600$ where we reduce the makespan of $64\%$.
 
@@ -763,9 +778,10 @@ of the maximal size of one cluster on the scheduling.
     \hspace{15pt}
     \begin{subfigure}{0.55\textwidth}
         \scalebox{0.7}{
-            \input{img/clust-size-full-bm20-m1000-4GPU-cal1GPU-idgraf.tex}
+            %\input{img/clust-size-full-bm20-m1000-4GPU-cal1GPU-idgraf.tex}
+            \input{img/mat-size-bm20-1100-8GPU-cal1GPU-idgraf.tex}
         }
-        \caption{Idgraf, $BlocSize=MatrixSize/20$, $4$GPUs.}
+        \caption{Idgraf, $BlocSize=MatrixSize/20$, $8$GPUs.}
         \label{fig:ClustersIdgraf}
     \end{subfigure}
     %\end{adjustwidth}
@@ -789,12 +805,12 @@ reduce the execution time by $48.7\%$ in comparison to the online HEFT
 algorithm.
 
 In figure \ref{fig:ClustersIdgraf}, we displayed the results of the
-experiment on Idgraf using $4$ GPUs, we can see that the best cluster size is
+experiment on Idgraf using $8$ GPUs, we can see that the best cluster size is
 quite different than for Mapuche. This difference comes from the fact that as
 Idgraf embed more processors than Mapuche, hence it needs a larger graph (i.e.
 smaller clusters) to use them efficiently. Still, with the convex clustering,
-we can obtain a gain of $32.3\%$ on Idgraf compared to the online one, while
-the offline algorithm only gave a gain of $11.4\%$ (fig
+we can obtain a gain of $34.8\%$ on Idgraf compared to the online one, while
+the offline algorithm gave a gain of $26.8\%$ (fig
 \ref{fig:ClustersIdgraf}, $MaxClusterSize=0$).
 
 
@@ -802,10 +818,10 @@ the offline algorithm only gave a gain of $11.4\%$ (fig
 \section{Conclusions and future work}
 \label{sec:cncl}
 During this study, we have worked on
-XKAAPI\cite{gautier2007kaapi,gautierxkaapi}, an existing middleware for parallel
-programing in which we have implemented a static scheduler with several
-heuristics. Then, we have used these heuristics to evaluate the impact of
-communication times on the maskespan of fine grain applications.
+XKAAPI\cite{gautier2007kaapi,gautierxkaapi}, an existing middleware for
+parallel programing in which we have implemented a static scheduler with
+several heuristics. Then, we have used these heuristics to evaluate the impact
+of communication times on the maskespan of fine grain applications.
 
 \subsection{Main contributions}
 \label{chap:cncl-contrib}
@@ -836,16 +852,16 @@ schedule to amortize its initial cost.
 To conclude this study has highlighted the fact that when the grain is fine
 enough and if we use heterogeneous machines, it is worthwhile to use some 
 complex scheduling algorithm to reduce the impact of communication times.
-However we have also shown that when the grain is large enough, it's more
+However we have also shown that when the grain is large enough, it is more
 efficient to use a less complex online scheduler.
 
 \subsection{Future work }
 \label{chap:cncl-work}
 
 For all the experiment shown in this study we have removed the overhead of the
-offline scheduler, however this overhead isn't negligible. Therefore some future
-work will consist on giving the ability to reuse a (partial) schedule for
-iterative applications (such as physical simulation).
+offline scheduler, however this overhead is not negligible. Therefore some
+future work will consist on giving the ability to reuse a (partial) schedule
+for iterative applications (such as physical simulation).
 
 Additionally, we would like to complete our study by a comparison with some
 others algorithms designed to reduce the impact of communication times such as
@@ -881,13 +897,13 @@ from the paper XKAAPI IPDPS 2013 \cite{gautierxkaapi}.
 
 \mytodo{Remove the todo list}
 \listoftodos
-%===============================================================================
+%==============================================================================
 
 %=========================annexes==============================================
 
 %newpage
 %\appendix{ \textbf{Annexe }}
 
-%===============================================================================
+%==============================================================================
 \end{document}
 

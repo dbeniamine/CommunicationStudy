@@ -10,5 +10,5 @@ plot  \
 'clust-size-c0-80_m800-1600_b100-improved-log.dat' using 1:2:5 index 2 with \
 yerrorlines title 'heft online' lw 5, \
 'clust-size-c0-80_m800-1600_b100-improved-log.dat' using 1:3:6 index 2 with \
-yerrorlines title 'convex cluster + heft offline' lw 5 
+yerrorlines title 'convex cluster + heft offline' lw 5  linecolor rgb "blue"
 

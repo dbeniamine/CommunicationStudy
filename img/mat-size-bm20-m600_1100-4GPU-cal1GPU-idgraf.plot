@@ -9,7 +9,7 @@ plot  \
 'mat-size-bm20-m600_1100-4GPU-cal1GPU-idgraf.dat' using 1:2:6 index 0 \
 with yerrorlines title 'heft online' lw 5 ,\
 'mat-size-bm20-m600_1100-4GPU-cal1GPU-idgraf.dat' using 1:3:7 index 0 \
-with yerrorlines title 'convex cluster + heft offline ' lw 5
+with yerrorlines title 'convex cluster + heft offline ' lw 5 linecolor rgb "blue"
 #'mat-size-bm20-m600_1100-4GPU-cal1GPU-idgraf.dat' using 1:3:7 index 1 \
 #with yerrorlines title 'heft offline ',\
 

@@ -9,7 +9,7 @@ plot  \
 'gpu-idgraf-c0-cal1GPU.dat' using 1:3:6 index 0 with yerrorlines title \
 'heft offline 1 gpu' lw 5,\
 'gpu-idgraf-c0-cal1GPU.dat' using 1:3:6 index 2 with yerrorlines title \
-'heft offline 8 gpu' lw 5 
+'heft offline 8 gpu' lw 5 linecolor rgb "blue"
 
 #'gpu-idgraf-c0-cal1GPU.dat' using 1:3:6 index 1 with yerrorlines title \
 #'heft offline 2 gpu' lw 5,\
