@@ -82,7 +82,7 @@ bookmarksopen=true}
     david.beniamine@imag.fr, guillaume.huard@imag.fr}
 }
 
-\title{Impact of communications time on XKAAPI heterogeneous applications
+\title{Impact of communications on XKAAPI heterogeneous applications
 scheduling}
 %\title{Study of communications times' impact on heterogeneous
 %applications scheduling using XKAAPI }
@@ -101,22 +101,18 @@ scheduling}
     matrix operations. However, before using these accelerators, one has to
     transfer data from the processor to them, which can be slow. 
 
-    To study the impact of communications, we  provide the implementation of
-    two offline scheduling algorithms within  XKAAPI's runtime. And we
-    compare these offline scheduler with an online one already implemented in
-    XKAAPI. Our experiments show that, by combining communication aware
-    scheduling algorithms, we can reduce substantially the makespan of a fine
-    grain application. We have discussed the importance of a good performance
-    model for offline algorithms and the limits of XKAAPI's one. Finally we
-    have highlighted the impact of
-    contention on the PCI bus on the makespan of mixed CPU/GPU applications. 
+    To study the impact of these communications, we  provide the
+    implementation of two offline scheduling algorithms; HEFT and convex
+    clusters.  We compare them with an online scheduler on fine grain
+    heterogeneous applications running on a machine with eight GPUs. Moreover,
+    we  discuss the impact of unpredicted events (such as contention) on
+    offline algorithms, and we the limits of XKAAPI's performance model.
 
-    In this paper, we show the impact of communication times on the
-    makespan produced by a scheduling.  More precisely, we focus on machines
-    with many GPUs and on applications with a low ratio of computations over
-    communications. 
-
-
+    Finally, our study shows that, by combining a clustering algorithm and a
+    classical scheduling heuristic, we can obtain a substantial gain on the
+    makespan of fine grain applications. However these results can still be
+    improved as XKAAPI's performance model does not manage contention effect,
+    which biased our algorithms.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -137,8 +133,11 @@ to describe an application as a set of tasks and dependencies.  They often use
 a workstealing algorithm \cite{blumofe1995cilk} to schedule theses tasks on
 the available resources. As it provide a good load balancing, this algorithm
 is quite efficient on homogeneous machines. However nowadays, HPC computers
-includes many GPUs, which implies  costly communications. Hence the basic
-workstealing algorithm which does not manage them can provide bad performances.
+includes many GPUs, although these accelerators are very efficient for regular
+computations, we need to transfers some data from the main memory to them.
+These communications can take a long time to be completed. Hence the basic
+workstealing algorithm which does not manage them can suffer from bad 
+performances on such machines.
 
 \subsection{List scheduling algorithms}
 
@@ -160,41 +159,52 @@ of $\omega\leq(2+c)\omega^*$ where $c$ is the maximum cost of one
 communication.  
 
 Heterogeneous Earliest Finish Time \cite{topcuoglu2002performance}  is a two
-steps algorithm: first it sort all tasks by non increasing upward rank
-(outgoing mean communications and executions time). Then it assign each tasks
-to the processor which minimize its finish time. This algorithm is not exactly
-a list algorithm as it allow a processor to remain idle while a task is ready
-to be executed.  Therefore it does not provide any bound on the execution time,
-moreover recent work \cite{Kedad-SidhoumMonnaMounieEtAl2013} have shown that
-the worst case can provide a makespan $\omega \geq \frac{m}{2}\omega^*$ where
-$m$ is the number of tasks. Despite this results, the HEFT algorithm is widely
-used (by StarPU and XKAAPI amongst others), and give some good results in many
-case\cite{ferreiralima:hal-00735470}. Nevertheless, the same study have shown
-that in some case this algorithm give better results when we use only the half
-of the available GPUs.
+steps algorithm: first it sort all tasks by non increasing upward rank. This
+rank depends for a task $t$ of its outgoing communications and the execution
+times of the tasks depending on $t$. Then it assign each task to the processor
+which minimizes its completion time. This algorithm is not exactly a list
+algorithm as it allows a processor to remain idle while a task is ready to be
+executed.  Therefore it does not provide any bound on the execution time.
+Moreover recent work \cite{Kedad-SidhoumMonnaMounieEtAl2013} have shown that
+the worst case makespan can be larger than $\frac{m}{2}\omega^*$ where
+$m$ is the number of tasks. Despite this result, the HEFT algorithm is widely
+used (by StarPU and XKAAPI amongst others), and give some good results in
+practice \cite{ferreiralima:hal-00735470}. Nevertheless, the same study have
+shown that in some cases this algorithm gives better results when only the
+half of the available GPUs are used.
 
-If most of these algorithms are designed offline, they are often implemented
-online on the runtimes' scheduler. These online adaptations have a lower cost
-than the original heuristics, however they have less informations, for example
-HEFT online adaptation neglect the outgoing work of a task when it compute its
-schedule. Therefore the offline version should be more efficient when the
-communications are costly.
+While most of these algorithms are designed offline, they are often
+implemented online in the runtimes scheduler. These online adaptations have a
+lower cost than the original heuristics, however they rely on less
+informations, for example HEFT online adaptation neglect the outgoing work of
+a task when it compute its schedule. Therefore the offline version should be
+more efficient for fine grain (ratio computations over communications)
+applications as the communications can not always be overlapped with
+computations.
+
+As these algorithms are known to have better results with coarse grain
+applications, it might be interesting to increase the grain of a DAG by
+grouping tasks into cluster before running them.
 
 \subsection{Clustering Algorithms}
 
 Clustering algorithms are designed for an unbounded number of processors, they
-consider the structure of the DAG and group tasks into clusters. All the
-tasks which belong to one cluster are assigned to the same processor (i.e. 
-there are no communication between them).  
+consider the structure of the DAG and group tasks into clusters. All the tasks
+which belong to one cluster are assigned to the same processor. Hence they are
+executed sequentially but there are no communication between them.  
 
 One of the most known clustering heuristic is the Dominant Sequence
 Clustering\cite{yang1994dsc}, it assigns to each task a priority corresponding
 to the sum of the longest path from a root node to this task and the longest
 path from this task to a sink node. Then the algorithm sort the tasks by
 decreasing priority and try to affect each task to the cluster which minimize
-its start time among the cluster containing its predecessors. However if a
-task can start earlier when we assign it to a new cluster instead of assigning
-it to an existing one, we create a new cluster for this task.
+its start time among the cluster containing its predecessors. If a task can
+start earlier by assigning it to a new cluster instead of an existing one, it
+create a new cluster for this task. This heuristic can be very efficient as it
+try to reduce the longest path through the DAG. However the graph induced by
+the clusters can contain some cycles, hence it can not be directly implemented
+on a middleware such as XKAAPI.
+
 \begin{figure}[htb]
     \centering
     \includegraphics[width=0.33\textwidth]{CLANS.png}
@@ -202,18 +212,26 @@ it to an existing one, we create a new cluster for this task.
     \label{fig:clans}
 \end{figure}
 
-
 The idea of CLANS
 \cite{aubum1990efficient,mccreary1993partitioning,mccreary1993graph} is to
 decompose the DAG into a tree of clans representing a recursive expression of
-the relationship between tasks. For a graph $G=(V,E)$, a set of nodes
-$X\subset V$ is a clan of the graph $G$ if and only if $\forall (x,y) \in X,
-\forall z \in V-X$, $z$ is an ancestor (or successor) of $x$ if and only if
-$z$ an ancestor (resp. successor) of $y$. There are three types of clans:
-Independent, linear and primitive (see figure \ref{fig:clans}). Once the graph
-is decomposed into clans, the algorithm traverse the tree bottom up using the
-communication and execution times to determine if two clans need to be merged
-or not.
+the relationship between tasks. 
+%For a graph $G=(V,E)$, a set of nodes
+%$X\subset V$ is a clan of the graph $G$ if and only if $\forall (x,y) \in X,
+%\forall z \in V-X$, $z$ is an ancestor (or successor) of $x$ if and only if
+%$z$ an ancestor (resp. successor) of $y$. 
+There are three types of clans:
+Independent, linear and primitive (see figure \ref{fig:clans}). Once the tree
+is computed, the algorithm traverse the tree bottom up using the communication
+and execution times to determine if two clans need to be merged or not.
+
+A theoretical comparison\cite{khan1994comparison} between the algorithms DSC,
+MCP (Modified Critical Path, similar to DSC), MH, HU (lists algorithms) and
+CLANS have shown that CLANS is robust and efficient for a large and diverse
+set of graphs. All the others algorithms give very bad performances for graphs
+with a fine grain. However this algorithm is very complex as we need to
+extract the tree of clans, and as DSC it can produce a cluster graph with
+cyclic dependencies. Hence it is not suited for our problem. 
 
 \begin{figure}[htb]
     \centering
@@ -231,31 +249,27 @@ communications between two clusters. Moreover as the graph obtained by merging
 the tasks inside a cluster is a Direct Acyclic Graph, it allow us to run
 any scheduling algorithm on it.
 
-A theoretical comparison\cite{khan1994comparison} between the algorithms DSC,
-MCP (Modified Critical Path, similar to DSC), MH, HU (lists algorithms) and
-CLANS have shown that CLANS is robust and efficient for a large and diverse
-set of graphs. All the others algorithms give very bad performances for graphs
-with a fine grain (ratio computation over communications). 
-
 \subsection{Key Issues}
 
-Although the GPUs are able to reduce substantially the execution time of
-some tasks, we need to transfer data from the main memory to them before
-the execution. Previous work\cite{ferreiralima:hal-00735470} have shown
-that it is possible to reduce the impact these communications costs by
-overlapping them with computation and by using sophisticated scheduling
-algorithms such as HEFT.  However, this work have also highlighted the
-fact that some contention can occur on machine with many GPUs linked to
-the processors by an interconnection network.
+Although the GPUs are able to reduce substantially the execution time of some
+tasks, we need to transfer data from the main memory to them before the
+execution. Previous work\cite{ferreiralima:hal-00735470} have shown that it is
+possible to reduce the impact of these communications costs by overlapping
+them with computation and by using sophisticated scheduling algorithms such as
+HEFT.  However, this work have also highlighted the fact that some contention
+can occur on machine with many GPUs linked to the processors by an
+interconnection network.
 
-In this study, we will use machines with one or several GPUs, aiming to
-show and to measure the impact of the communication times on the
-scheduling of HPC applications. As all the list scheduling algorithms cited
-before are efficient for coarse grain applications, we have focused our
-analysis on very fine grain applications. 
+In this study, we use machines with one or several GPUs, aiming to show and to
+measure the impact of the communication times on the scheduling of HPC
+applications. As all the list scheduling algorithms cited before are efficient
+for coarse grain applications, our analysis focus on very fine grain
+applications. 
 
-To reach that goal, we have implemented a static scheduler and several
-heuristics within the parallel runtime XKAAPI. We have combined list
+
+\mytodo{continue here}
+To reach that goal, we provide a static scheduler and several
+heuristics within the parallel runtime XKAAPI. We combine list
 scheduling algorithms and clustering heuristics to reduce the impact of
 communications. Using our scheduler, we have led an experimental study
 showing that the offline version of HEFT can give a gain of $59\%$
