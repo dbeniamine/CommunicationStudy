@@ -236,7 +236,7 @@ cyclic dependencies. Hence it is not suited for our problem.
 
 \begin{figure}[htb]
     \centering
-    \includegraphics[width=0.33\textwidth]{conv.png}
+    \includegraphics[width=0.31\textwidth]{conv.png}
     \caption{Convex and non convex group of tasks.}
     \label{fig:conv}
 \end{figure}
@@ -385,21 +385,21 @@ number of nodes of the DAG, and a mean case in $O(|V|^2)$.
 
 \begin{figure*}[t!]
     \centering
-    \begin{subfigure}{0.24\textwidth}
+    \begin{subfigure}{0.22\textwidth}
         \centering
         \includegraphics[width=0.7\textwidth]{conv-decomp0.png}
         \caption{Original graph.}
         \label{fig:conv-decomp0}
     \end{subfigure}
     ~
-    \begin{subfigure}{0.27\textwidth}
+    \begin{subfigure}{0.25\textwidth}
         \centering
         \includegraphics[width=0.7\textwidth]{conv-decomp.png}
         \caption{\texttt{Decompose4()}}
         \label{fig:conv-decomp1}
     \end{subfigure}
     ~
-    \begin{subfigure}{0.27\textwidth}
+    \begin{subfigure}{0.25\textwidth}
         \centering
         \includegraphics[width=0.7\textwidth]{conv-decomp2.png}
         \caption{\texttt{Update\_Partitions()}}
@@ -428,14 +428,41 @@ given as a parameter and the recursion stops when a cluster is smaller than
 this size (see line \ref{algop:rec-stop}). 
 %Then, the clusters are mapped on the processors using the HEFT algorithm. 
 
-In addition, the original algorithms kept the cluster where the smaller
+\begin{figure}[htb]
+    %        \begin{subfigure}{0.5\textwidth}
+    %        %    \hspace{-20pt}
+    %            \scalebox{0.6}{
+    %                \input{img/rdtry_m1100_b100_maxDePartMin.tex}
+    %            }
+    %            \caption{Original heuristic.}
+    %            \label{fig:RdtMaxDeMin}
+    %        \end{subfigure}
+    %   \hspace{-15pt}
+    %        \begin{subfigure}{0.5\textwidth}
+    \scalebox{0.65}{
+        \centering
+        \input{img/rdtry_m1100_b100_maxDePartMax.tex}
+    }
+    %            \caption{Our heuristic.}
+    %            \label{fig:RdtMaxDeMax}
+    %        \end{subfigure}
+
+
+    \caption{Heuristic used to choose the best clustering, on       
+    a Cholesky reduction, on Mapuche.}
+    \label{fig:Rdt}
+\end{figure}
+
+In addition, the original algorithms kept the cluster where the smallest
 partition was the larger and recursively divide either all the partition or
-none of them. Some experiments (presented in section \ref{sec:exp-adapt})
-shows that these criterion gave unstable results. Hence we always keep the
+none of them. These criteria gave unstable results. Hence we always keep the
 clustering giving the largest cluster (see line \ref{algop:part-choice}) and
 we choose to recursively divide each individual clusters if it is large enough
-(line \ref{algop:rec-stop}). These adaptations are also validated section
-\ref{sec:exp-adapt}.
+(line \ref{algop:rec-stop}). We can see in figure \ref{fig:Rdt} that with this
+heuristic, the algorithm stabilize quickly than in with the original one.
+Moreover if we do not reach the best result obtained by the original
+algorithm, when the stabilisation occurs, we provide a better schedule with
+our heuristic.
 
 The two important (and costly) steps of this algorithm are the initial
 decomposition into four clusters, and their update to keep the clusters
@@ -558,7 +585,8 @@ previous study \cite{ferreiralima:hal-00735470}.
     \label{table:machines}
 \end{table*}
 
-All the experiment presented in this study, have been run on one or the other
+All the experiment presented in this study, including those presented in the
+previous sections, have been run on one or the other
 of the two following machines:
 Idgraf\footnote{\url{http://digitalis.inria.fr/index.php/Usage\#idgraf}} a HPC
 workstation with 12 cores and 8 GPUs managed by Grid5000 and Mapuche a
@@ -598,60 +626,6 @@ Finally, by default the execution time presented for the algorithms HEFT
 offline, and convex cluster correspond to the total time minus the overhead
 induced by the static scheduler.
 
-\subsection{Adaptations from the original algorithm}
-\label{sec:exp-adapt}
-\mytodo{Re write here and fix figures}
-\begin{figure}[htb]
-        \centering
-        \begin{subfigure}{0.5\textwidth}
-        %    \hspace{-20pt}
-            \scalebox{0.6}{
-                \input{img/rdtry_m1100_b100_maxDePartMin.tex}
-            }
-            \caption{Original heuristic.}
-            \label{fig:RdtMaxDeMin}
-        \end{subfigure}
-     %   \hspace{-15pt}
-        \begin{subfigure}{0.5\textwidth}
-            \scalebox{0.6}{
-                \input{img/rdtry_m1100_b100_maxDePartMax.tex}
-            }
-            \caption{Our heuristic.}
-            \label{fig:RdtMaxDeMax}
-        \end{subfigure}
-
-
-    \caption{Heuristic used to choose the best clustering, on       
-    a Cholesky reduction, on Mapuche.}
-    \label{fig:Rdt}
-\end{figure}
-
-Before evaluating the global overhead, as it depends on the number of random
-tries that we are testing to find our clustering, we have to decide on a
-reasonable value. While we were studying this parameter, we have realized that
-with the heuristic proposed by the original convex cluster paper to choose the
-best clustering, we need a lot of tries to stabilise the results. Moreover,
-the stabilisation occurs on the worst execution time provided by this
-clustering as it is shown by figure \ref{fig:RdtMaxDeMin}. 
-
-In the original algorithm, we keep the clustering which maximize the size of
-the smallest of the two partition $A$ and $A^{\sim}$. Either that partition is
-big enough and all the four partition are recursively divided or the four
-partitions are merged into one big cluster. Using this method, our clusters
-were never well balanced. Thus we have have proposed another heuristic: we
-choose the graph partition which maximize the maximum of $|A|$ and
-$|A^{\sim}|$. The objective of this heuristic is to be able to decompose this
-large cluster once again. This way we should find a more balanced global
-clustering. Indeed, figure \ref{fig:RdtMaxDeMax} shows that with this approach
-the stabilisation occurs faster with a better execution time.  Nevertheless,
-we have to note that the best clustering found by our algorithm results in a
-slower execution than the one found by the first heuristic.
-
-Our algorithm converges quickly to stable results, thus we can set the number
-of random tries to $\lfloor\sqrt{|V|}\rfloor$ (in our example, we have $|V|=352$, so
-$\lfloor\sqrt{|V|}\rfloor=18$). We have represented this threshold by a dashed
-vertical line in figure \ref{fig:Rdt}.
-
 \subsection{Comparison of online and offline heuristics}
 \label{sec:exp-exp-perf}
 \mytodo{Continue re read here}
@@ -680,20 +654,20 @@ communications and not enough computations to overlap them (small matrix
 sizes) , we can obtain a substantial gain by using an heuristic aware of these
 communications. 
 
-\begin{figure*}[htb]
+\begin{figure}[h!]
     %\begin{adjustwidth}{}{-3cm}
     \centering
-    \begin{subfigure}{0.4\textwidth}
-        \hspace{-20pt}
-        \scalebox{0.6}{
+    \begin{subfigure}{0.5\textwidth}
+%        \hspace{-20pt}
+        \scalebox{0.65}{
             \input{img/mat-size-mapuche-noInt-calibrate.tex}
         }
         \caption{Comparison on Mapuche.}
         \label{fig:OnOffMapuche}
-   \end{subfigure}
-   \hspace{15pt}
-    \begin{subfigure}{0.55\textwidth}
-        \scalebox{0.6}{
+    \end{subfigure}
+%    \hspace{15pt}
+    \begin{subfigure}{0.5\textwidth}
+        \scalebox{0.65}{
             \input{img/mat-size-idgraf-8gpu-cal8GPU.tex}
         }
         \caption{Comparison on Idgraf.}
@@ -703,7 +677,7 @@ communications.
     \caption{Online vs offline HEFT scheduling, on Cholesky decomposition, on both
     machines.}
     \label{fig:OnOff}
-\end{figure*}
+\end{figure}
 
 Nevertheless, the same experiment on Idgraf gives a different result, indeed
 we can see in figure \ref{fig:OnOffIdgraf} that if we still have a gain of
