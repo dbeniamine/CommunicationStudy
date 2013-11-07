@@ -22,6 +22,7 @@
 
 \usepackage{algpseudocode}
 \usepackage{algorithm}
+\renewcommand{\algorithmiccomment}[1]{\State $\triangleright$ #1}
 \usepackage{cite}
 \usepackage{url}
 \usepackage{hyperref}
@@ -260,91 +261,81 @@ HEFT.  However, this work have also highlighted the fact that some contention
 can occur on machine with many GPUs linked to the processors by an
 interconnection network.
 
-In this study, we use machines with one or several GPUs, aiming to show and to
-measure the impact of the communication times on the scheduling of HPC
-applications. As all the list scheduling algorithms cited before are efficient
-for coarse grain applications, our analysis focus on very fine grain
-applications. 
+In this study, we use machines with one or several GPUs, and we aim at showing
+and measuring the impact of the communication times on the scheduling of HPC
+applications. All the list algorithms cited before are efficient for coarse
+grain applications however when the grain is fine enough, as they do not
+consider the whole structure of the DAG. Therefore our analysis focus on very
+fine grain applications. 
 
 
-\mytodo{continue here}
-To reach that goal, we provide a static scheduler and several
-heuristics within the parallel runtime XKAAPI. We combine list
-scheduling algorithms and clustering heuristics to reduce the impact of
-communications. Using our scheduler, we have led an experimental study
-showing that the offline version of HEFT can give a gain of $59\%$
-compared to the makespan of the online one when the volume of
-communications is large enough. Moreover, using a clustering algorithm
-before HEFT, we have reduced the makespan of one scheduling up to $64\%$
-compared to the online HEFT.
+To reach that goal, we provide the implementation of  a static scheduler and
+several heuristics within the parallel runtime XKAAPI. Our experimental study
+shows that by combining list heuristics and clustering algorithms, we can
+reduce the impact of communications times. Indeed the offline version of HEFT
+can give a gain of $59\%$ compared to the makespan of the online one when the
+volume of communications is large enough.  Moreover, using a clustering
+algorithm before HEFT, we can reduce the makespan of one scheduling up to
+$64\%$ compared to the online HEFT.
 
-First we will present our implementation of the convex cluster algorithm in
-XKAAPI's runtime, and the adaptation that we have made in section
-\ref{sec:impl}. Then we will use this scheduler to analyse the impact of
-communication in section \ref{sec:exp}. And finally we will give our
-conclusion and some future work on section \ref{sec:cncl}.
+First we present our implementation of the convex cluster algorithm in
+XKAAPI's runtime, and our adaptations  in section \ref{sec:impl}. Then we use
+this scheduler to analyse the impact of communication in section
+\ref{sec:exp}. And finally we give our conclusions and some future work on
+section \ref{sec:cncl}.
 
 \section{Implementation of an offline scheduler in XKAAPI's runtime}
 \label{sec:impl}
 
 By default, XKAAPI uses an online scheduler and compute data dependencies in a
-lazy way. It's scheduler provides various heuristics, among them, we can find
+lazy way. Its scheduler provides various heuristics, among them, we can find
 an online adaptation of the HEFT algorithm. The main difference between this
 version and the original one is that the first one cannot sort the ready tasks
-as the DAG is not fully known.  Still the online heuristic work with actual
-time when the offline one uses predicted times thus only the first one is able
-to adapt to unexpected effects such as contention. To study the impact of
-communications and to run structural algorithms such as convex cluster, we
-have decided to work with an offline scheduler.
+according to the upward rank as the DAG is not fully known.  Still the online
+heuristic work with actual time when the offline one uses predicted times thus
+only the first one is able to adapt to unexpected effects such as contention.
 
 \subsection{XKAAPI scheduler and performance model}
 \label{sec:impl-kaapi}
 
-XKAAPI has an API for writing scheduling heuristics, however as it is designed
-for online algorithms this interface is quite limited. We can basically write
-three callbacks methods, the first is launched during the initialization of
-the runtime before the execution of the program. The second one
-(\texttt{push})) is called each time a tasks is ready to be executed and must
-return the processor on which the tasks should be run. As XKAAPI is a
-workstealing runtime, a task is always executed as soon as all it's
-dependencies are finished and a processor is ready to run it. The last one
-(\texttt{steal}) is executed when a processor wants to steal a task from
-another and must return the task to be stolen.
+XKAAPI provides an API for writing scheduling heuristics designed for online
+algorithms. One can write three callbacks methods. The first (\texttt{init})
+is launched during the initialization of the runtime before the execution of
+the program.  The second one (\texttt{push})) is called each time a tasks is
+ready to be executed and must return the processor on which the tasks should
+be run. As XKAAPI is a workstealing runtime, a task is always executed as soon
+as all it's dependencies are satisfied and a processor is ready to run it. The
+last one (\texttt{steal}) is executed when a processor wants to steal a task
+from another and must return the task to be stolen.
 
 Although this API is minimalistic, we can extract the DAG from the ready tasks
-list during the initialization, therefore we are able to run an offline
-scheduler during this phase and apply its decision when the runtime calls the
-\texttt{push} and \texttt{steal} functions. However this interface do not
+list when the middleware calls the \texttt{init} callback. Therefore we are
+able to run an offline scheduler during this phase and apply its decisions in
+the \texttt{push} and \texttt{steal} functions. However this interface do not
 enable us to force the order of execution of two tasks. Thus we need to add
-some (empty) internal tasks to enforce dependencies between tasks which belong
-to different clusters.
+some (empty) internal tasks to enforce dependencies between
+tasks which belong to different clusters.
 
-XKAAPI have also a performance model which provide for each task a prediction
-of its execution time on a each processor. This model can also estimate the 
-time needed to transfer $n$ bytes of data from one processor to an other. This
-predictions are made from the traces of one (or many) previous calibration
-runs. We will discuss the impact of these previous runs an how this model can
-be biased in section \ref{sec:exp}. It is important to notice that even the
-online adaptation of HEFT uses this performance model.
+XKAAPI also contains a performance model which provides for each task, a
+prediction of its execution time on a each processor. This model can also
+estimate the time needed to transfer $n$ bytes of data from one processor to
+an other. This predictions are derived from the traces of one (or several)
+previous calibration runs. We will discuss the impact of these calibration
+runs an how this model can be biased in section \ref{sec:exp}. It is important
+to notice that even the online adaptation of HEFT uses this performance model.
 
 \subsection{Offline scheduling}
 \label{sec:impl-off}
 By default, in XKAAPI, each processor has a part of the work in his queue of
-tasks, nevertheless the XKAAPI's C++ API allow to spawn tasks with the keyword
-\texttt{SetStaticSched} which force XKAAPI to maintain a centralized list of
-ready tasks. As each task has a pointer to all its successors, the
-dependencies graph is known within the runtime. However as the convex cluster
-algorithm require a test of the relationship between almost every pairs of
-vertices of the DAG,  with this pointer based representation, computing these
-relationships can be costly. Therefore the first step of our static scheduler
-is to extract the DAG into an adjacency matrix and to run a Warshall Algorithm
-which compute all the parenthood relations. Although this algorithm have a
-worst case in $O(|V|^3)$ for a graph $G=(V,E)$, and a mean case in $O(|V|^2)$
-it is worthwhile as it allow us to know in constant time if two nodes are
-related or not.
-
-\renewcommand{\algorithmiccomment}[1]{\State $\triangleright$ #1}
-
+tasks, nevertheless it is able to maintain a centralized list of ready tasks.
+As each task has a pointer to all its successors, the dependencies graph is
+known within the runtime. However as the convex cluster algorithm need to
+compute ancestors and descendants of every nodes of the DAG, with this pointer
+based representation, computing these relationships can be costly. Therefore
+the first step of our static scheduler is to extract the DAG into an adjacency
+matrix and to run a Warshall Algorithm which compute all the parenthood
+relations. This algorithm has a worst case in $O(|V|^3)$ where $|V|$ is the
+number of nodes of the DAG, and a mean case in $O(|V|^2)$.
 
 \begin{algorithm}[h!]
     \centering
@@ -382,7 +373,7 @@ related or not.
         \ForAll{$p \in Part$}
         \If{$|p| > MaxClusterSize$}\label{algop:rec-stop}
         \State $Extract\_Clusters(p)$
-        \Comment Divide the partition if big enough
+        \Comment Divide the partition if large enough
         \Else
         \State $Add\_Cluster(p)$
         \Comment Save the cluster
@@ -432,19 +423,19 @@ Our implementation is close to this algorithm however as it is designed for a
 theoretical machine with an unbounded number of identical processors, it
 requires a few adjustments, for example in the original version the recursion
 stops when the partition size is less than twice the communication cost. As we
-do not have a unitary communication cost, we have decided to fix a maximal
-size for a cluster and to stop the recursion when a cluster is smaller than
-this size (see line \ref{algop:rec-stop}). Then, the clusters are mapped on the
-processors using the HEFT algorithm. 
+do not have a unitary communication cost, the maximal size for a cluster is
+given as a parameter and the recursion stops when a cluster is smaller than
+this size (see line \ref{algop:rec-stop}). 
+%Then, the clusters are mapped on the processors using the HEFT algorithm. 
 
-In addition, some experiments showed that the original criterion used to
-determine which clustering was the best among the random test gave unstable
-performances. Hence we have decided to change it to keep always the clustering
-giving the largest cluster (see line \ref{algop:part-choice}), and we have
-shown that this heuristic gave better results. Finally, we choose to
-recursively divide each individual clusters if it is large enough (line
-\ref{algop:rec-stop}) while the original algorithm divide either all the
-clusters or none of them.
+In addition, the original algorithms kept the cluster where the smaller
+partition was the larger and recursively divide either all the partition or
+none of them. Some experiments (presented in section \ref{sec:exp-adapt})
+shows that these criterion gave unstable results. Hence we always keep the
+clustering giving the largest cluster (see line \ref{algop:part-choice}) and
+we choose to recursively divide each individual clusters if it is large enough
+(line \ref{algop:rec-stop}). These adaptations are also validated section
+\ref{sec:exp-adapt}.
 
 The two important (and costly) steps of this algorithm are the initial
 decomposition into four clusters, and their update to keep the clusters
@@ -452,13 +443,13 @@ balanced.  Starting from the graph shown on figure \ref{fig:conv-decomp0}, we
 choose randomly a pivot (the node $7$) and we put all the others nodes in one
 of the three groups its predecessors $A^<$, its successors $A^>$ all the
 others $A^{\sim}$. At the end of this step we have the clustering displayed on
-figure \ref{fig:conv-decomp1}. As we can know in $O(1)$ the relationship
-between two nodes, this step costs only $O(|V|)$ comparisons. During the second
-step, we compare each nodes of $A^<$ and $A^>$ with the nodes of $A^{\sim}$ to
-determine the common predecessor (resp successors) of $A$ and $A^{\sim}$ keep
-their initial placement, the others are moved in the group $A$.  By this way
-we obtain the clustering presented on figure \ref{fig:conv-decomp2}. The
-second step has a cost of:
+figure \ref{fig:conv-decomp1}. As we can know the relationship between two
+nodes in constant time from the precomputed matrix .This step costs only
+$O(|V|)$ comparisons. During the second step, we compare each nodes of $A^<$
+and $A^>$ with the nodes of $A^{\sim}$ to determine the common predecessor
+(resp successors) of $A$ and $A^{\sim}$ keep their initial placement, the
+others are moved in the group $A$.  This way, we obtain the clustering
+presented on figure \ref{fig:conv-decomp2}. The second step has a cost of:
 $$C=(|A^>|+|A^<|)*|A^{\sim}|$$ 
 we know that at the end of the first step $|A|=1$ which implies: 
 $$|A^>|+|A^<|+|A^{\sim}|=|V|-1$$
@@ -466,9 +457,10 @@ thus:
 $$C=(|V|-1-|A^{\sim}|)*|A^{\sim}|$$ 
 The two terms are bounded by $|V|$ so we have: 
 $$C\leq|V|^2$$
-and so if $|A^{\sim}|=\frac{|V|}{2}$,
-$$C=(|V|-1-\frac{|V|}{2})*\frac{|V|}{2}=\left(\frac{|V|}{2}\right)^2-\frac{|V|}{2}$$
-hence we have: 
+%and so if $|A^{\sim}|=\frac{|V|}{2}$,
+%$$C=(|V|-1-\frac{|V|}{2})*\frac{|V|}{2}=\left(\frac{|V|}{2}\right)^2-\frac{|V|}{2}$$
+%hence we have: 
+hence :
 $$C=O(|V^2|)$$ 
 Finally, if we assume that the clusters are balanced it takes
 $log\left(\frac{|V|}{MaxClusterSize}\right)$ calls to stop the recursion, as
@@ -476,8 +468,8 @@ the two first step are repeated $MaxRandomTry$ times, the
 cost of our implementation is:
 $$O\left(MaxRandomTry*|V|^2*log\left(\frac{|V|}{MaxClusterSize}\right)\right)$$
 
-As the clustering phase aim of increasing the grain of the graph, we need to
-be sure that each cluster will behave as one big task. Therefore in the
+As the clustering phase aims at increasing the grain of the graph, we need to
+be sure that each cluster will behave as one single task. Therefore in the
 runtime, we have to add some empty synchronization tasks at the beginning and
 at the end of each clusters as shown in figure \ref{fig:conv-int} (white
 diamond shaped nodes). Indeed with the clusters of the figure
@@ -511,7 +503,7 @@ algorithm for instance.
     \label{fig:conv-end}
 \end{figure}
 
-This two step have a cost $\leq |V^2|$ hence our offline scheduler has a
+These two steps have a cost $\leq |V|^2$ hence our offline scheduler has a
 theoretical worst case cost in $O(|V|^3)$ due to the Warshall algorithm,
 however the mean case cost is still $O(log(|V|)*|V|^2*MaxRandomTry)$ (due to
 the convex cluster algorithm).  Although this cost is quite high, in some
@@ -525,14 +517,15 @@ results.
 
 \section{Analysis and reduction of the communication times}
 \label{sec:exp}
-Using our scheduler, we have studied the impact off communications on two
-different machines which are described in section \ref{sec:exp-set}. For this
-experimental analysis we have compared the online HEFT with our offline
-implementation, as this adaptation do not consider the communication times as
-much as the original one. Then we have combined it with a clustering phase to
-take even more the communications into account. We have compared all this
-heuristics on a Cholesky reduction as this application induced some contention
-on a previous study \cite{ferreiralima:hal-00735470}.
+
+We use our scheduler study the impact of communications on two different
+machines which are described in section \ref{sec:exp-set}. For this
+experimental analysis compare the online HEFT with our offline implementation,
+as the first one does not consider the communication times as much as the
+other. Then we combine it with a clustering phase to take the communications
+into account at a global scale. All these heuristics are tested on a
+Cholesky decomposition as this application induced some contention on a
+previous study \cite{ferreiralima:hal-00735470}.
 
 
 \subsection{Experimental setup}
@@ -589,15 +582,13 @@ It is important to note that Idgraf has a hierarchical topology as shown in
 figure \ref{fig:idgraf}, the eight GPUS are split over two PCI Bridge which
 are linked together. Each bridge manage 4 GPUs separated in two groups which
 belong to two different switches. With this particular topology, simultaneous
-communications involving several GPUs might led to contention on the PCie
+communications involving several GPUs might lead to contention on the PCie
 switches, this contention will be highlighted in section
 \ref{sec:exp-exp-perf}.
 
-Concerning our algorithms, unless stated otherwise, we use the following
-parameters:\\
-$NbRandomTries=\sqrt{|V|}$, $MaxClusterSize=10$, and for the
-studied applications\\
-$MatrixSize=1000$, $BlocSize=MatrixSize/10$.
+Regarding our algorithms, unless stated otherwise, we use the following
+parameters: $NbRandomTries=\sqrt{|V|}$, $MaxClusterSize=10$, and for the
+studied applications $MatrixSize=1000$, $BlocSize=MatrixSize/10$.
 
 For each curve presented in the following section, each points represent the
 mean runtime of at least 15 different runs with the same parameters, and a
@@ -607,8 +598,63 @@ Finally, by default the execution time presented for the algorithms HEFT
 offline, and convex cluster correspond to the total time minus the overhead
 induced by the static scheduler.
 
+\subsection{Adaptations from the original algorithm}
+\label{sec:exp-adapt}
+\mytodo{Re write here and fix figures}
+\begin{figure}[htb]
+        \centering
+        \begin{subfigure}{0.5\textwidth}
+        %    \hspace{-20pt}
+            \scalebox{0.6}{
+                \input{img/rdtry_m1100_b100_maxDePartMin.tex}
+            }
+            \caption{Original heuristic.}
+            \label{fig:RdtMaxDeMin}
+        \end{subfigure}
+     %   \hspace{-15pt}
+        \begin{subfigure}{0.5\textwidth}
+            \scalebox{0.6}{
+                \input{img/rdtry_m1100_b100_maxDePartMax.tex}
+            }
+            \caption{Our heuristic.}
+            \label{fig:RdtMaxDeMax}
+        \end{subfigure}
+
+
+    \caption{Heuristic used to choose the best clustering, on       
+    a Cholesky reduction, on Mapuche.}
+    \label{fig:Rdt}
+\end{figure}
+
+Before evaluating the global overhead, as it depends on the number of random
+tries that we are testing to find our clustering, we have to decide on a
+reasonable value. While we were studying this parameter, we have realized that
+with the heuristic proposed by the original convex cluster paper to choose the
+best clustering, we need a lot of tries to stabilise the results. Moreover,
+the stabilisation occurs on the worst execution time provided by this
+clustering as it is shown by figure \ref{fig:RdtMaxDeMin}. 
+
+In the original algorithm, we keep the clustering which maximize the size of
+the smallest of the two partition $A$ and $A^{\sim}$. Either that partition is
+big enough and all the four partition are recursively divided or the four
+partitions are merged into one big cluster. Using this method, our clusters
+were never well balanced. Thus we have have proposed another heuristic: we
+choose the graph partition which maximize the maximum of $|A|$ and
+$|A^{\sim}|$. The objective of this heuristic is to be able to decompose this
+large cluster once again. This way we should find a more balanced global
+clustering. Indeed, figure \ref{fig:RdtMaxDeMax} shows that with this approach
+the stabilisation occurs faster with a better execution time.  Nevertheless,
+we have to note that the best clustering found by our algorithm results in a
+slower execution than the one found by the first heuristic.
+
+Our algorithm converges quickly to stable results, thus we can set the number
+of random tries to $\lfloor\sqrt{|V|}\rfloor$ (in our example, we have $|V|=352$, so
+$\lfloor\sqrt{|V|}\rfloor=18$). We have represented this threshold by a dashed
+vertical line in figure \ref{fig:Rdt}.
+
 \subsection{Comparison of online and offline heuristics}
 \label{sec:exp-exp-perf}
+\mytodo{Continue re read here}
 
 There are two important differences between the online and the offline version
 of the HEFT algorithm, the first one is that the offline algorithm sorts the
@@ -634,57 +680,30 @@ communications and not enough computations to overlap them (small matrix
 sizes) , we can obtain a substantial gain by using an heuristic aware of these
 communications. 
 
-\begin{figure}[htb]
-    \addtocounter{figure}{1}
-    \centering
-    \begin{subfigure}{0.5\textwidth}
-        \scalebox{0.6}{
-            \input{img/gpu-idgraf-c0-cal1GPU-off.tex}
-        }
-        \caption{Effect of the number of GPUs used during the execution.}
-        \label{fig:ContentionGpu}
-    \end{subfigure}
-    \begin{subfigure}{0.5\textwidth}
-        \scalebox{0.6}{
-            \centering
-            \input{img/mat-size-idgraf-8gpu-cal1-8GPU.tex}
-        }
-        \caption{Effects of the number of GPUs during the calibration.}
-        \label{fig:ContentionTrick}
-    \end{subfigure}
-    \label{fig:Contention}
-    \caption{Analysis of the contention, on the execution time of a 
-    Cholesky reduction, on Idgraf.}
-
-\end{figure}
-
-\begin{figure*}[bt]
-    \addtocounter{figure}{-2}
+\begin{figure*}[htb]
     %\begin{adjustwidth}{}{-3cm}
     \centering
     \begin{subfigure}{0.4\textwidth}
         \hspace{-20pt}
-        \scalebox{0.7}{
+        \scalebox{0.6}{
             \input{img/mat-size-mapuche-noInt-calibrate.tex}
         }
         \caption{Comparison on Mapuche.}
         \label{fig:OnOffMapuche}
-    \end{subfigure}
-    \hspace{15pt}
+   \end{subfigure}
+   \hspace{15pt}
     \begin{subfigure}{0.55\textwidth}
-        \scalebox{0.7}{
+        \scalebox{0.6}{
             \input{img/mat-size-idgraf-8gpu-cal8GPU.tex}
         }
         \caption{Comparison on Idgraf.}
         \label{fig:OnOffIdgraf}
     \end{subfigure}
     %\end{adjustwidth}
-    \caption{Online vs offline HEFT scheduling, on Cholesky reduction, on both
+    \caption{Online vs offline HEFT scheduling, on Cholesky decomposition, on both
     machines.}
     \label{fig:OnOff}
 \end{figure*}
-\addtocounter{figure}{1}
-
 
 Nevertheless, the same experiment on Idgraf gives a different result, indeed
 we can see in figure \ref{fig:OnOffIdgraf} that if we still have a gain of
@@ -713,13 +732,63 @@ execution time of $24.7\%$ on 8 GPUs as we can see on figure
 \ref{fig:ContentionTrick}. All these results validate our hypothesis, there is
 some contention on the PCI buses.
 
+\begin{figure}[htb]
+    \centering
+    \begin{subfigure}{0.5\textwidth}
+        \scalebox{0.6}{
+            \input{img/gpu-idgraf-c0-cal1GPU-off.tex}
+        }
+        \caption{Effect of the number of GPUs used during the execution.}
+        \label{fig:ContentionGpu}
+    \end{subfigure}
+    \begin{subfigure}{0.5\textwidth}
+        \scalebox{0.6}{
+            \centering
+            \input{img/mat-size-idgraf-8gpu-cal1-8GPU.tex}
+        }
+        \caption{Effects of the number of GPUs during the calibration.}
+        \label{fig:ContentionTrick}
+    \end{subfigure}
+    \label{fig:Contention}
+    \caption{Analysis of the contention, on the execution time of a 
+    Cholesky decomposition, on Idgraf.}
+
+\end{figure}
+
 Finally, we have clearly shown that the offline algorithm is able to give
 better results (up to $59\%$ in our experiments) by avoiding some
 communications. However, if the model does not fit to the reality (for example
 when there is some contention), an online algorithm is more adaptated. Hence
 we can think about implementing an hybrid scheduler which takes initial
 decisions statically and adapts (or recompute them) if the actual execution
-times does not match to the expected ones.
+times do not match to the expected ones.
+
+\begin{figure*}[t!]
+    %\begin{adjustwidth}{}{-3cm}
+    \centering
+    \begin{subfigure}{0.4\textwidth}
+        \hspace{-20pt}
+        \scalebox{0.6}{
+            \input{img/mat-size-c10-mapuche.tex}
+        }
+        \caption{Mapuche.}
+        \label{fig:MatMapuche}
+    \end{subfigure}
+    \hspace{15pt}
+    \begin{subfigure}{0.55\textwidth}
+        \scalebox{0.6}{
+            \input{img/mat-size-bm20-m600_1100-4GPU-cal1GPU-idgraf.tex}
+        }
+        \caption{Idgraf, $BlocSize=MatrixSize/20$.}
+        \label{fig:MatIdgraf}
+    \end{subfigure}
+    %\end{adjustwidth}
+
+    \caption{Square matrix dimension impact on convex cluster and HEFT
+    algorithm, on a Cholesky decomposition, on both machines.}
+    \label{fig:Mat}
+\end{figure*}
+
 
 \subsection{Analysis of the clustering algorithm}
 \label{sec:exp-exp-clust}
@@ -729,32 +798,6 @@ convex cluster algorithm before running the offline HEFT algorithm. Using this
 combination, we will show that we can have even a better gain than with the
 offline or the online algorithm only.
 
-\begin{figure*}[tb]
-    %\begin{adjustwidth}{}{-3cm}
-    \centering
-    \begin{subfigure}{0.4\textwidth}
-        \hspace{-20pt}
-        \scalebox{0.7}{
-            \input{img/mat-size-c10-mapuche.tex}
-        }
-        \caption{Mapuche.}
-        \label{fig:MatMapuche}
-    \end{subfigure}
-    \hspace{15pt}
-    \begin{subfigure}{0.55\textwidth}
-        \scalebox{0.7}{
-            \input{img/mat-size-bm20-m600_1100-4GPU-cal1GPU-idgraf.tex}
-        }
-        \caption{Idgraf, $BlocSize=MatrixSize/20$.}
-        \label{fig:MatIdgraf}
-    \end{subfigure}
-    %\end{adjustwidth}
-
-    \caption{Square matrix dimension impact on convex cluster and HEFT
-    algorithm, on a Cholesky reduction, on both machines.}
-    \label{fig:Mat}
-\end{figure*}
-
 Our first experiment on the convex cluster algorithm aim at showing for which
 matrix size this heuristic can be useful. We can see in figure
 \ref{fig:MatMapuche} that as for the offline HEFT, the convex cluster
@@ -763,6 +806,33 @@ on Mapuche with a matrix size of $800*800$. Nevertheless, we can improve this
 result by choosing a better maximum size of clusters. Following experiments
 will show that with an appropriate size of cluster, we can get a even better
 makespan.
+
+\begin{figure*}[htb]
+    %\begin{adjustwidth}{}{-3cm}
+    \centering
+    \begin{subfigure}{0.4\textwidth}
+        \hspace{-20pt}
+        \scalebox{0.6}{
+            \input{img/clust-size-c0-80_m1000_b100-improved-log.tex}
+        }
+        \caption{Mapuche.}
+        \label{fig:ClustersMapuche}
+    \end{subfigure}
+    \hspace{15pt}
+    \begin{subfigure}{0.55\textwidth}
+        \scalebox{0.6}{
+            %\input{img/clust-size-full-bm20-m1000-4GPU-cal1GPU-idgraf.tex}
+            \input{img/mat-size-bm20-1100-8GPU-cal1GPU-idgraf.tex}
+        }
+        \caption{Idgraf, $BlocSize=MatrixSize/20$, $8$GPUs.}
+        \label{fig:ClustersIdgraf}
+    \end{subfigure}
+    %\end{adjustwidth}
+
+    \caption{Effect of the maximum size of clusters on the convex cluster
+    algorithm, on a Cholesky decomposition, on both machines.}
+    \label{fig:Clusters}
+\end{figure*}
 
 \mytodo{refaire la courbe \ref{fig:MatIdgraf} et adapter le texte: exp in
 progress} On idgraf, to obtain a better scheduling, we had to increase the
@@ -777,33 +847,6 @@ improve the scheduling obtained by the online algorithm. For the next
 experiments, we will use a small matrix $1000*1000$ and we will keep the same
 bloc sizes as for this experiments. Finally, we are going to study the impact
 of the maximal size of one cluster on the scheduling.
-
-\begin{figure*}[tb]
-    %\begin{adjustwidth}{}{-3cm}
-    \centering
-    \begin{subfigure}{0.4\textwidth}
-        \hspace{-20pt}
-        \scalebox{0.7}{
-            \input{img/clust-size-c0-80_m1000_b100-improved-log.tex}
-        }
-        \caption{Mapuche.}
-        \label{fig:ClustersMapuche}
-    \end{subfigure}
-    \hspace{15pt}
-    \begin{subfigure}{0.55\textwidth}
-        \scalebox{0.7}{
-            %\input{img/clust-size-full-bm20-m1000-4GPU-cal1GPU-idgraf.tex}
-            \input{img/mat-size-bm20-1100-8GPU-cal1GPU-idgraf.tex}
-        }
-        \caption{Idgraf, $BlocSize=MatrixSize/20$, $8$GPUs.}
-        \label{fig:ClustersIdgraf}
-    \end{subfigure}
-    %\end{adjustwidth}
-
-    \caption{Effect of the maximum size of clusters on the convex cluster
-    algorithm, on a Cholesky reduction, on both machines.}
-    \label{fig:Clusters}
-\end{figure*}
 
 By increasing the maximum size of a cluster (see algorithm
 page \pageref{algo:conv-clust}, \ref{algo:conv-clust}, line
