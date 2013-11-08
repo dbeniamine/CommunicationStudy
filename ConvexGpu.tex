@@ -152,7 +152,7 @@ number of different resources and $n$ the number of processors. Hence it
 does not scale for current HPC computers. 
 
 Earliest Task First\cite{hwang1989scheduling} is an adaptation for a finite
-number of identical processors with a unitary communication cost between each
+number of identical processors with a fixed communication cost between each
 couples of processors and without contention. While some tasks are not
 scheduled, the algorithm try to map the earliest task that can be executed on
 the processor which minimize it starting time. This algorithm provide a bound
@@ -311,10 +311,11 @@ from another and must return the task to be stolen.
 Although this API is minimalistic, we can extract the DAG from the ready tasks
 list when the middleware calls the \texttt{init} callback. Therefore we are
 able to run an offline scheduler during this phase and apply its decisions in
-the \texttt{push} and \texttt{steal} functions. However this interface do not
-enable us to force the order of execution of two tasks. Thus we need to add
-some (empty) internal tasks to enforce dependencies between
-tasks which belong to different clusters.
+the \texttt{push} and \texttt{steal} functions.  However this functions only
+choose the processor on which a task is executed. As XKAAPI tries to execute
+each task as soon as possible, to set the execution order of the task which
+belong to the same processor, we need to add some internal (empty)
+synchronization tasks.
 
 XKAAPI also contains a performance model which provides for each task, a
 prediction of its execution time on a each processor. This model can also
@@ -692,17 +693,17 @@ GPUs.
 
 To prove this hypothesis, we have run the same experiment on one, two, four
 and eight GPUs with both algorithms. The figure \ref{fig:ContentionGpu} shows
-the results off the offline heuristic with one and eight GPUs. We can see that
-we obtain equivalent or better makespan using only one GPU rather then eight.
-In addition, we have found that for many tasks, the predicted execution times
+the results of the both heuristics with zero to eight GPUs. We can see that we
+obtain equivalent or better makespan using only one GPU rather then eight.  In
+addition, we have found that for many tasks, the predicted execution times
 (i.e. the execution time extracted from the calibration runs) were increasing
-as we were using more GPUs. As the eight GPUs are identical, this rise means
-that our performances model include some communications in the execution times
-and these communications takes more time when we use all the available GPUs.
-Moreover as this contention appears in our execution times, our algorithms
-were biased. However, we can easily avoid this bias by performing our
-calibration run with only one GPU. Doing this, we are able to reduce the
-execution time of $24.7\%$ on 8 GPUs as we can see on figure
+as we were using more GPUs. As we need a data transfer to know when a GPU task
+is finished, our performance model includes a small communication in the
+predicted execution times. However when we some contention appears, this
+communication take more time and modify substantially the predicted execution
+time which biased our algorithms.  However, we can easily avoid this bias by
+performing our calibration run with only one GPU.  Doing this, we are able to
+reduce the execution time of $24.7\%$ on 8 GPUs as we can see on figure
 \ref{fig:ContentionTrick}. All these results validate our hypothesis, there is
 some contention on the PCI buses.
 
@@ -710,7 +711,8 @@ some contention on the PCI buses.
     \centering
     \begin{subfigure}{0.5\textwidth}
         \scalebox{0.6}{
-            \input{img/gpu-idgraf-c0-cal1GPU-off.tex}
+         %   \input{img/gpu-idgraf-c0-cal1GPU-off.tex}
+            \input{img/gpu-idgraf-c0-m800.tex}
         }
         \caption{Effect of the number of GPUs used during the execution.}
         \label{fig:ContentionGpu}
@@ -809,7 +811,9 @@ makespan.
 \end{figure*}
 
 \mytodo{refaire la courbe \ref{fig:MatIdgraf} et adapter le texte: exp in
-progress} On idgraf, to obtain a better scheduling, we had to increase the
+progress}
+\mytodo {Refaire la courbe \ref{fig:MatMapuche}}
+On idgraf, to obtain a better scheduling, we had to increase the
 volume of communications by decreasing the bloc size ($matrixSize/20$). With
 this parameter, the convex clustering give a better schedule than the online
 HEFT as we can see in fiugre \ref{fig:MatIdgraf}.  The best case tested in our
