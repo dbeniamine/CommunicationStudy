@@ -617,7 +617,10 @@ switches, this contention will be highlighted in section
 
 Regarding our algorithms, unless stated otherwise, we use the following
 parameters: $NbRandomTries=\sqrt{|V|}$, $MaxClusterSize=10$, and for the
-studied applications $MatrixSize=1000$, $BlocSize=MatrixSize/10$.
+studied applications $MatrixSize=1000$, $BlocSize=MatrixSize/10$ for Mapuche
+and $BlocSize=MatrixSize/20$ for Idgraf.  as Idgraf has way more computational
+resources then Mapuche, HEFT is efficient with a smaller grain, hence we
+decrease the $BlocSize$, to reduce even more the grain of the application.
 
 For each curve presented in the following section, each points represent the
 mean runtime of at least 15 different runs with the same parameters, and a
@@ -629,31 +632,29 @@ induced by the static scheduler.
 
 \subsection{Comparison of online and offline heuristics}
 \label{sec:exp-exp-perf}
-\mytodo{Continue re read here}
 
 There are two important differences between the online and the offline version
 of the HEFT algorithm, the first one is that the offline algorithm sorts the
-tasks by upward rank, which mean that a task priority is related to the length
-of the chain of tasks that depends on it. As the online version does not have
-a global vision of the DAG, it maps each task to a processor as soon as they
-are ready, without sorting them which can result on bad scheduling choice.
-However the second difference is that the offline algorithm only uses
-theoretical execution and communication times while the online one uses
-theoretical times for predictions but makes it decision at the runtime. Hence
-if there is some
-contention, the online algorithm will see that a processor which should be
-ready is not and will adapt it's decisions.
+tasks by upward rank, which means that a task priority is related to the
+length of the chain of tasks that depends on it. As the online version does
+not have a global vision of the DAG, it maps each task to a processor as soon
+as it is ready, without sorting all the ready tasks, which can result on bad
+scheduling decisions.  However, the second difference is that the offline
+algorithm only uses theoretical execution and communication times while the
+online one uses theoretical times for predictions but takes its decisions at
+runtime. Hence, if there is some contention, the online algorithm will see
+that a processor which should be ready is not and will adapt its decisions.
 
-To show these differences, we have compared the makespan of a Cholesky
-reduction on our two machines using all the available GPUs  with the two
-versions of HEFT. The results are displayed in figure \ref{fig:OnOff}. The
-first important point is that, on Mapuche (figure \ref{fig:OnOffMapuche}), the
-offline algorithm provide always an equivalent or better makespan than the
-online one. In the best case we have observed a gain of $59\%$. This result
-confirms our first idea when we are in a configuration where there are many
-communications and not enough computations to overlap them (small matrix
-sizes) , we can obtain a substantial gain by using an heuristic aware of these
-communications. 
+To show these differences, compare the makespan of a Cholesky decomposition on
+our two machines using all the available GPUs  with the two versions of HEFT.
+The results are displayed in figure \ref{fig:OnOff}. The first important point
+is that, on Mapuche (figure \ref{fig:OnOffMapuche}), the offline algorithm
+provides always an equivalent or better makespan than the online one. In the
+best case can observe a gain of $59\%$. This result confirms our first idea:
+when we are in a configuration where there are many communications and not
+enough computations to overlap them (small matrix sizes) , we can obtain a
+substantial gain by using an heuristic specifically designed to minimize these
+communications.
 
 \begin{figure}[h!]
     %\begin{adjustwidth}{}{-3cm}
@@ -691,7 +692,8 @@ hypothesis, is that a contention which cannot be anticipated by the model
 appears on the PCI buses (see figure \ref{fig:idgraf}) when we use all the
 GPUs. 
 
-To prove this hypothesis, we have run the same experiment on one, two, four
+\mytodo{Change this par when new exp}
+To prove this hypothesis, we run the same experiment on one, two, four
 and eight GPUs with both algorithms. The figure \ref{fig:ContentionGpu} shows
 the results of the both heuristics with zero to eight GPUs. We can see that we
 obtain equivalent or better makespan using only one GPU rather then eight.  In
@@ -734,7 +736,7 @@ some contention on the PCI buses.
 Finally, we have clearly shown that the offline algorithm is able to give
 better results (up to $59\%$ in our experiments) by avoiding some
 communications. However, if the model does not fit to the reality (for example
-when there is some contention), an online algorithm is more adaptated. Hence
+when there is some contention), our offline algorithm is biased. Hence
 we can think about implementing an hybrid scheduler which takes initial
 decisions statically and adapts (or recompute them) if the actual execution
 times do not match to the expected ones.
@@ -769,19 +771,20 @@ times do not match to the expected ones.
 \subsection{Analysis of the clustering algorithm}
 \label{sec:exp-exp-clust}
 
-In the following experiments, we have increased the grain of the DAG using the
+In the following experiments, we increase the grain of the DAG using the
 convex cluster algorithm before running the offline HEFT algorithm. Using this
-combination, we will show that we can have even a better gain than with the
+combination, we will show that we can have an even better gain than with the
 offline or the online algorithm only.
 
-Our first experiment on the convex cluster algorithm aim at showing for which
+\mytodo{Update when new expe}
+Our first experiment on the convex cluster algorithm aims at showing for which
 matrix size this heuristic can be useful. We can see in figure
 \ref{fig:MatMapuche} that as for the offline HEFT, the convex cluster
-algorithm give better results for small matrices, with a gain up to $28.5\%$
-on Mapuche with a matrix size of $800*800$. Nevertheless, we can improve this
-result by choosing a better maximum size of clusters. Following experiments
-will show that with an appropriate size of cluster, we can get a even better
-makespan.
+algorithm gives better results for small matrices, with a gain up to $28.5\%$
+on Mapuche with a matrix size of $800*800$. In our implementation of the
+convex cluster algorithm, we can set the maximum size of a cluster as a
+parameter. Hence the following experiments will show the impact of this
+parameter on the schedule. 
 
 \begin{figure*}[htb]
     %\begin{adjustwidth}{}{-3cm}
@@ -810,43 +813,40 @@ makespan.
     \label{fig:Clusters}
 \end{figure*}
 
-\mytodo{refaire la courbe \ref{fig:MatIdgraf} et adapter le texte: exp in
-progress}
+\mytodo{adapter le texte après exp}
 \mytodo {Refaire la courbe \ref{fig:MatMapuche}}
-On idgraf, to obtain a better scheduling, we had to increase the
-volume of communications by decreasing the bloc size ($matrixSize/20$). With
-this parameter, the convex clustering give a better schedule than the online
-HEFT as we can see in fiugre \ref{fig:MatIdgraf}.  The best case tested in our
-experiment is for a matrix
+On idgraf, to obtain a better scheduling, the convex clustering still gives a
+better schedule than the online HEFT as we can see in fiugre
+\ref{fig:MatIdgraf}.  The best case tested in our experiment is for a matrix
 size of $600*600$ where we reduce the makespan of $64\%$.
 
 From this experiment, it is clear that with small matrices, we can highly
 improve the scheduling obtained by the online algorithm. For the next
 experiments, we will use a small matrix $1000*1000$ and we will keep the same
-bloc sizes as for this experiments. Finally, we are going to study the impact
+bloc sizes as for this experiments. Their objective is to study the impact
 of the maximal size of one cluster on the scheduling.
 
 By increasing the maximum size of a cluster (see algorithm
 page \pageref{algo:conv-clust}, \ref{algo:conv-clust}, line
 \ref{algop:rec-stop}), we increase the grain of the graph and we reduce the
-amount of communications that HEFT has to manage.
+amount of communications that HEFT has to manage. However we also reduce
+number of possible schedules.
 
 Figure \ref{fig:ClustersMapuche} shows the results of our last experiment on
 Mapuche, we can see that we need large clusters $\geq 30$ to obtain the maximal
 gain. However if we use a cluster size larger than $70$, it seems that we
-loose to much informations and the HEFT algorithm cannot give an efficient
+loose to much scheduling freedom and the HEFT algorithm cannot give an efficient
 scheduling anymore. Finally, we can notice that with $MaxClusterSize=35$ we
-reduce the execution time by $48.7\%$ in comparison to the online HEFT
-algorithm.
+reduce the execution time by $48\%$ in comparison to the offline HEFT
+algorithm and $59.5\%$ in comparison to the online version.
 
-In figure \ref{fig:ClustersIdgraf}, we displayed the results of the
+In figure \ref{fig:ClustersIdgraf}, we display the results of the
 experiment on Idgraf using $8$ GPUs, we can see that the best cluster size is
 quite different than for Mapuche. This difference comes from the fact that as
 Idgraf embed more processors than Mapuche, hence it needs a larger graph (i.e.
 smaller clusters) to use them efficiently. Still, with the convex clustering,
-we can obtain a gain of $34.8\%$ on Idgraf compared to the online one, while
-the offline algorithm gave a gain of $26.8\%$ (fig
-\ref{fig:ClustersIdgraf}, $MaxClusterSize=0$).
+we can obtain a gain of $34.7\%$ on Idgraf compared to the online heft, which
+correspond to a gain of $11\%$ compared to the offline one.
 
 
 
@@ -865,32 +865,32 @@ Our first contribution is the implementation of a static scheduler using
 a classical algorithm, Heterogeneous Earliest Finish Time combined to a
 clustering algorithm, convex clusters.
 
-We have focused on applications with a fine grain, where the communication
+This study focus on applications with a fine grain, where the communication
 times have a huge impact on the total execution time. Using an offline
-algorithm, we have been able to reduce the makespan of an application by
-$59\%$. We have also highlighted some effect of contention on an heterogeneous
+algorithm, we are able to reduce the makespan of an application up to
+$59\%$. Some contention effects have also been highlighted on an heterogeneous
 machine with 8 GPUs. 
 
-Our study has also shown some limits of the performance model used by XKAAPI
+Our study also shows some limits of the performance model used by XKAAPI
 and we have proposed one technique to reduce their effects on the offline
-algorithms however to improve the results of offline scheduler we need a
-performance model which take contention effects into account.
+algorithms however to improve upon the results of offline schedulers we need a
+performance model which takes contention effects into account.
 
-Finally we have increased the grain of a DAG using the clustering algorithm
-before running HEFT to obtain a schedule. This way, we have observed a
+Finally increase the grain of a DAG using the clustering algorithm
+before running HEFT to obtain a schedule. This way, observe a
 substantial gain up to $64\%$ on the makespan, compared to the online HEFT.
 
 However, these results do not take into account the overhead needed to run
-scheduling algorithms. Hence, we still need to work on the ability to reuse a
-schedule to amortize its initial cost. 
+scheduling algorithms which is not negligible. Hence, we still need to work on
+the ability to reuse a schedule to amortize its initial computation cost. 
 
-To conclude this study has highlighted the fact that when the grain is fine
-enough and if we use heterogeneous machines, it is worthwhile to use some 
+To conclude, this study highlight the fact, that when the grain is fine
+enough, and if we use heterogeneous machines, it is worthwhile to use some 
 complex scheduling algorithm to reduce the impact of communication times.
-However we have also shown that when the grain is large enough, it is more
-efficient to use a less complex online scheduler.
+However we also show that when the grain is large enough, it is more
+efficient to use a simpler online scheduler.
 
-\subsection{Future work }
+\subsection{Future work}
 \label{chap:cncl-work}
 
 For all the experiment shown in this study we have removed the overhead of the
@@ -898,12 +898,12 @@ offline scheduler, however this overhead is not negligible. Therefore some
 future work will consist on giving the ability to reuse a (partial) schedule
 for iterative applications (such as physical simulation).
 
-Additionally, we would like to complete our study by a comparison with some
-others algorithms designed to reduce the impact of communication times such as
-DSC or CLANS. However these algorithms might create a cyclic DAG of clusters
-which is incompatible with XKAAPI's runtime. Hence we need either to adapt
-them or to run another algorithm after them to merge or cut some clusters to
-remove the cyclic dependencies.
+%Additionally, we would like to complete our study by a comparison with some
+%others algorithms designed to reduce the impact of communication times such as
+%DSC or CLANS. However these algorithms might create a cyclic DAG of clusters
+%which is incompatible with XKAAPI's runtime. Hence we need either to adapt
+%them or to run another algorithm after them to merge or cut some clusters to
+%remove the cyclic dependencies.
 
 Finally an interesting perspective would be to design an adaptive algorithm
 able to update the different parameters of the heuristic tested in this study,
