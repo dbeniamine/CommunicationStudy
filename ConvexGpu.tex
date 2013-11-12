@@ -133,12 +133,17 @@ To obtain portable performances, some runtimes such as XKAAPI
 to describe an application as a set of tasks and dependencies.  They often use
 a workstealing algorithm \cite{blumofe1995cilk} to schedule theses tasks on
 the available resources. As it provide a good load balancing, this algorithm
-is quite efficient on homogeneous machines. However nowadays, HPC computers
-includes many GPUs, although these accelerators are very efficient for regular
-computations, we need to transfers some data from the main memory to them.
-These communications can take a long time to be completed. Hence the basic
-workstealing algorithm which does not manage them can suffer from bad 
-performances on such machines.
+is quite efficient on homogeneous machines. 
+
+However nowadays, HPC computers includes many GPUs which embed their own
+memory, therefore we need, we need to transfers some data from the main memory
+to them. These communication must be taken into account when we try to write
+efficient code on a GPU.  Some work \cite{venkatasubramanian2009tuned} have
+shown that we can be more efficient be recomputing the same results several
+times if it reduce the number of CPU-GPU communications.  
+
+Hence the basic workstealing algorithm which does not manage these
+communications can suffer from bad performances on heterogeneous machines. 
 
 \subsection{List scheduling algorithms}
 
