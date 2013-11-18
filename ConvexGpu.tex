@@ -103,7 +103,7 @@ scheduling}
     transfer data from the processor to them, which can be slow. 
 
     To study the impact of these communications, we  provide two offline
-    scheduling algorithms implementations: HEFT and convex clusters.  We
+    scheduling algorithm implementations: HEFT and convex clusters.  We
     compare them with an online scheduler on fine grain heterogeneous
     applications running on a machine with eight GPUs. Moreover, we  discuss
     the impact of unpredicted events (such as contention) on these
@@ -111,7 +111,7 @@ scheduling}
 
     Finally, our study shows that, by combining a clustering algorithm and a
     classical scheduling heuristic, we can obtain a substantial gain on the
-    makespan of fine grain applications. However these results can still be
+    makespan of fine grain applications. However, these results can still be
     improved as XKAAPI's performance model does not manage contention effect,
     which biased our algorithms.
 \end{abstract}
@@ -132,16 +132,16 @@ To obtain portable performances, some runtimes such as XKAAPI
 \cite{gautierxkaapi} or StarPU \cite{augonnet2011starpu} allow the programmer
 to describe an application as a set of tasks and dependencies.  They often use
 a workstealing algorithm \cite{blumofe1995cilk} to schedule theses tasks on
-the available resources. As it provide a good load balancing, this algorithm
+the available resources. As it provide a good load balancing, this heuristic 
 is quite efficient on homogeneous machines. 
 
 However nowadays, HPC computers includes many GPUs which embed their own
-memory, therefore we need, we need to transfer some data from the main memory
-to them. These communications must be taken into account when we try to write
-efficient code on a GPU.  Indeed some work \cite{venkatasubramanian2009tuned}
-have shown that their impact is such important that it can be more efficient
-to recompute the same results several times to reduce the number of CPU-GPU
-communications.  
+memory, therefore, we need to transfer some data from the main memory
+to them. As these communications are not instantaneous, they must be taken
+into account when we try to write efficient code on a GPU.  Indeed some work
+\cite{venkatasubramanian2009tuned} have shown that their impact is such
+important that it can be efficient to recompute the same results several
+times to reduce the number of CPU-GPU communications.  
 
 Hence the basic workstealing algorithm which does not manage these
 communications can suffer from bad performances on heterogeneous machines. 
@@ -151,7 +151,7 @@ communications can suffer from bad performances on heterogeneous machines.
 The workstealing algorithm is a distributed adaptation of the list scheduling
 which provide a makespan $\omega\leq2\omega^*$ where $\omega^*$ is the optimal
 makespan \cite{GrahamRL1966Bounds, GrahamRL1969Bounds}. However this bound is
-true for homogeneous processors and with no communications. In a model with
+true for homogeneous processors and without communications. In a model with
 heterogenous machines and no communications, this bounds grows to
 $\omega\leq\min(s+2-\frac{2s+1}{n},\frac{n+1}{2})\omega^*$ where $s$ is the
 number of different resources and $n$ the number of processors. Hence it
@@ -160,8 +160,8 @@ does not scale for current HPC computers.
 Earliest Task First\cite{hwang1989scheduling} is an adaptation for a finite
 number of identical processors with a fixed communication cost between each
 couples of processors and without contention. While some tasks are not
-scheduled, the algorithm try to map the earliest task that can be executed on
-the processor which minimize it starting time. This algorithm provide a bound
+scheduled, the heuristic try to map the earliest task that can be executed on
+the processor which minimize it starting time. This algorithm provides a bound
 of $\omega\leq(2+c)\omega^*$ where $c$ is the maximum cost of one
 communication.  
 
@@ -169,29 +169,29 @@ Heterogeneous Earliest Finish Time \cite{topcuoglu2002performance}  is a two
 steps algorithm: first it sort all tasks by non increasing upward rank. This
 rank depends for a task $t$ of its outgoing communications and the execution
 times of the tasks depending on $t$. Then it assign each task to the processor
-which minimizes its completion time. This algorithm is not exactly a list
+which minimizes its completion time. This heuristic is not exactly a list
 algorithm as it allows a processor to remain idle while a task is ready to be
 executed.  Therefore it does not provide any bound on the execution time.
 Moreover recent work \cite{Kedad-SidhoumMonnaMounieEtAl2013} have shown that
-the worst case makespan can be larger than $\frac{m}{2}\omega^*$ where
-$m$ is the number of tasks. Despite this result, the HEFT algorithm is widely
-used (by StarPU and XKAAPI amongst others), and give some good results in
-practice \cite{ferreiralima:hal-00735470}. Nevertheless, the same study have
-shown that in some cases this algorithm gives better results when only the
-half of the available GPUs are used.
+the worst case makespan can be larger than $\frac{m}{2}\omega^*$ where $m$ is
+the number of tasks. Despite this result, the HEFT algorithm is widely used
+(by StarPU and XKAAPI amongst others).Previous work has shown that it gives
+good results in practice \cite{ferreiralima:hal-00735470}. Nevertheless, the
+same study have shown that in some cases this algorithm gives better results
+when only the half of the available GPUs are used.
 
 While most of these algorithms are designed offline, they are often
-implemented online in the runtimes scheduler. These online adaptations have a
+implemented online in the runtimes schedulers. These online adaptations have a
 lower cost than the original heuristics, however they rely on less
-informations, for example HEFT online adaptation neglect the outgoing work of
+informations, for example the online HEFT adaptation neglect the outgoing work of
 a task when it compute its schedule. Therefore the offline version should be
-more efficient for fine grain (ratio computations over communications)
+more efficient for fine grain (small $\frac{computations}{communications}$)
 applications as the communications can not always be overlapped with
 computations.
 
 As these algorithms are known to have better results with coarse grain
 applications, it might be interesting to increase the grain of a DAG by
-grouping tasks into cluster before running them.
+grouping tasks into clusters before running them.
 
 \subsection{Clustering Algorithms}
 
@@ -201,16 +201,16 @@ which belong to one cluster are assigned to the same processor. Hence they are
 executed sequentially but there are no communications between them.  
 
 One of the most known clustering heuristic is the Dominant Sequence
-Clustering\cite{yang1994dsc}, it assigns to each task a priority corresponding
-to the sum of the longest path from a root node to this task and the longest
-path from this task to a sink node. Then the algorithm sort the tasks by
-decreasing priority and try to affect each task to the cluster which minimize
-its start time among the cluster containing its predecessors. If a task can
-start earlier by assigning it to a new cluster instead of an existing one, it
-create a new cluster for this task. This heuristic can be very efficient as it
-try to reduce the longest path through the DAG. However the graph induced by
-the clusters can contain some cycles, hence it can not be directly implemented
-on a middleware such as XKAAPI.
+Clustering\cite{yang1994dsc}, which assigns to each task a priority
+corresponding to the longest path from a root node to a sink node including
+this task. Then it sort the tasks by decreasing priority and try to affect
+each task to the cluster which minimize its start time among the cluster
+containing its predecessors. If a task can start earlier by assigning it to a
+new cluster instead of an existing one, it create a new cluster for this task.
+This heuristic can be very efficient as it try to reduce the longest path
+through the DAG. However the graph induced by the clusters can contain some
+cycles, hence it can not be directly implemented on a middleware such as
+XKAAPI.
 
 \begin{figure}[htb]
     \centering
@@ -248,7 +248,7 @@ cyclic dependencies. Hence it is not suited for our problem.
 \end{figure}
 
 
-The convex clustering algorithm\cite{lepere2002new} produces an acyclic graph
+The convex clusters algorithm\cite{lepere2002new} produces an acyclic graph
 of clusters.  Indeed a cluster $C$ is convex if and only if $\forall\ (x,z)\
 \in\ C$ all task $y$, such that $x\ \prec\ y\ \prec\ z$, is in $C$ (see
 figure \ref{fig:conv}). By this property, we know that there are no two way
@@ -261,31 +261,32 @@ any scheduling algorithm on it.
 Although the GPUs are able to reduce substantially the execution time of some
 tasks, we need to transfer data from the main memory to them before the
 execution. Previous work\cite{ferreiralima:hal-00735470} have shown that it is
-possible to reduce the impact of these communications costs by overlapping
+possible to reduce the impact of these communication times by overlapping
 them with computations and by using sophisticated scheduling algorithms such as
 HEFT.  However, this work have also highlighted the fact that some contention
 can occur on machines with many GPUs linked to the processors by an
 interconnection network.
 
-In this study, we use machines with one or several GPUs, and we aim at showing
+In this study, we use machines with one to eight GPUs, and we aim at showing
 and measuring the impact of the communication times on the scheduling of HPC
-applications. All the list algorithms cited before are efficient for coarse
-grain applications however when the grain is fine enough, as they do not
-consider the whole structure of the DAG. Therefore our analysis focus on very
-fine grain applications. 
+applications.  To reach that goal, we provide the implementation of  a static
+scheduler and several heuristics within the parallel runtime XKAAPI.  All the
+list algorithms cited before are efficient for coarse grain applications
+however they suffer bad performances when the grain is fine enough, as they do
+not consider the whole structure of the DAG. Therefore our analysis focus on
+very fine grain applications. 
 
-To reach that goal, we provide the implementation of  a static scheduler and
-several heuristics within the parallel runtime XKAAPI. Our experimental study
-shows that by combining list heuristics and clustering algorithms, we can
-reduce the impact of communications times. Indeed on a mchine with 8GPUs, the
-offline version of HEFT can give a gain of $17\%$ compared to the makespan of
-the online one when the volume of communications is large enough.  Moreover,
-using a clustering algorithm before HEFT, we can reduce the makespan of one
-scheduling up to $34\%$ compared to the online HEFT.
+Our experimental study shows that by combining list heuristics and clustering
+algorithms, we can reduce the impact of communications times. Indeed on a
+machine with 8 GPUs, the offline version of HEFT can give a gain of $17\%$
+compared to the makespan of the online one when the volume of communications
+is large enough.  Moreover, using a clustering algorithm before HEFT, we can
+reduce the makespan of one scheduling up to $34\%$ compared to the online
+HEFT.
 
-First we present our implementation of the convex cluster algorithm in
+First we present our implementation of the convex clusters algorithm in
 XKAAPI's runtime, and our adaptations  in section \ref{sec:impl}. Then we use
-this scheduler to analyse the impact of communication in section
+this scheduler to analyse the impact of communications in section
 \ref{sec:exp}. And finally we give our conclusions and some future work on
 section \ref{sec:cncl}.
 
@@ -297,7 +298,7 @@ lazy way. Its scheduler provides various heuristics, among them, we can find
 an online adaptation of the HEFT algorithm. The main difference between this
 version and the original one is that the first one cannot sort the ready tasks
 according to the upward rank as the DAG is not fully known.  Still the online
-heuristic works with actual time when the offline one uses predicted times thus
+heuristic works with actual times when the offline one uses predicted times thus
 only the first one is able to adapt to unexpected effects such as contention.
 
 \subsection{XKAAPI scheduler and performance model}
@@ -306,8 +307,8 @@ only the first one is able to adapt to unexpected effects such as contention.
 XKAAPI provides an API for writing scheduling heuristics designed for online
 algorithms. One can write three callbacks methods. The first (\texttt{init})
 is launched during the initialization of the runtime before the execution of
-the program.  The second one (\texttt{push}) is called each time a tasks is
-ready to be executed and must return the processor on which the tasks should
+the program.  The second one (\texttt{push}) is called each time a task is
+ready to be executed and must return the processor on which the task should
 be run. As XKAAPI is a workstealing runtime, a task is always executed as soon
 as all its dependencies are satisfied and a processor is ready to run it. The
 last one (\texttt{steal}) is executed when a processor wants to steal a task
@@ -335,7 +336,7 @@ to notice that even the online adaptation of HEFT uses this performance model.
 By default, in XKAAPI, each processor has a part of the work in his queue of
 tasks, nevertheless it is able to maintain a centralized list of ready tasks.
 As each task has a pointer to all its successors, the dependencies graph is
-known within the runtime. However as the convex cluster algorithm need to
+known within the runtime. However as the convex clusters algorithm need to
 compute ancestors and descendants of every nodes of the DAG, with this pointer
 based representation, computing these relationships can be costly. Therefore
 the first step of our static scheduler is to extract the DAG into an adjacency
@@ -411,14 +412,14 @@ number of nodes of the DAG, and a mean case in $O(|V|^2)$.
         \caption{\texttt{Update\_Partitions()}}
         \label{fig:conv-decomp2}
     \end{subfigure}
-    \caption{Decomposition and update step of convex cluster algorithm.}
+    \caption{Decomposition and update step of convex clusters algorithm.}
     \label{fig:conv-decomp}
 \end{figure*}
 
 
 Once these dependencies are computed, we are able to run our implementation of
-the convex cluster algorithm (see algorithm \ref{algo:conv-clust}). The
-original convex cluster algorithm select two independent random nodes and uses
+the convex clusters algorithm (see algorithm \ref{algo:conv-clust}). The
+original heuristic select two independent random nodes and uses
 them to divide the group into four partitions $A$ and $A^{\sim}$ which are
 independent, their predecessors $A^<$ and successors $A^>$. Once these
 partitions are computed, either the smallest of $A$ and $A^{\sim}$ is large
@@ -459,13 +460,14 @@ this size (see line \ref{algop:rec-stop}).
     \label{fig:Rdt}
 \end{figure}
 
+\mytodo{paragraphe a relire}
 In addition, the original algorithms kept the cluster where the smallest
 partition was the larger and recursively divide either all the partition or
 none of them. These criteria gave unstable results. Hence we always keep the
 clustering giving the largest cluster (see line \ref{algop:part-choice}) and
 we choose to recursively divide each individual clusters if it is large enough
 (line \ref{algop:rec-stop}). As we can see in figure \ref{fig:Rdt}, with this
-heuristic, the algorithm stabilize quicker than in with the original one.
+heuristic, the algorithm stabilize quicker than with the original one.
 Moreover if we do not reach the best result obtained by the original
 algorithm, when the stabilisation occurs, we provide a better schedule with
 our heuristic.
@@ -477,10 +479,10 @@ choose randomly a pivot (the node $7$) and we put all the others nodes in one
 of the three groups its predecessors $A^<$, its successors $A^>$ all the
 others $A^{\sim}$. At the end of this step we have the clustering displayed on
 figure \ref{fig:conv-decomp1}. As we can know the relationship between two
-nodes in constant time from the precomputed matrix .This step costs only
+nodes in constant time from the precomputed matrix. This step costs only
 $O(|V|)$ comparisons. During the second step, we compare each nodes of $A^<$
-and $A^>$ with the nodes of $A^{\sim}$ to determine the common predecessor
-(resp successors) of $A$ and $A^{\sim}$ keep their initial placement, the
+and $A^>$ with the nodes of $A^{\sim}$ to determine the common predecessors
+(resp successors) of $A$ and $A^{\sim}$, keep their initial placement, the
 others are moved in the group $A$.  This way, we obtain the clustering
 presented on figure \ref{fig:conv-decomp2}. The second step has a cost of:
 $$C=(|A^>|+|A^<|)*|A^{\sim}|$$ 
@@ -495,7 +497,8 @@ $$C\leq|V|^2$$
 %hence we have: 
 hence :
 $$C=O(|V^2|)$$ 
-Finally, if we assume that the clusters are balanced it takes
+Finally, if as in \cite{lepere2002new}, we assume that the clusters are
+balanced, it takes
 $log\left(\frac{|V|}{MaxClusterSize}\right)$ calls to stop the recursion, as
 the two first step are repeated $MaxRandomTry$ times, the
 cost of our implementation is:
@@ -525,28 +528,26 @@ As the clustering phase aims at increasing the grain of the graph, we need to
 be sure that each cluster will behave as one single task. Therefore in the
 runtime, we have to add some empty synchronization tasks at the beginning and
 at the end of each clusters as shown in figure \ref{fig:conv-int} (white
-diamond shaped nodes). Indeed with the clusters of the figure
-\ref{fig:conv-decomp2}, without these tasks,  as XKAAPI uses a work stealing
-algorithm to execute a task as soon as it is ready, if the clusters $A^<$ and
-$A^{\sim}$ are executed on the same processor, the second one might start
-before the end of the first, delaying the execution of the cluster $A$.
-Although these synchronization tasks increase the size of the graph, they are
-empty, and as the cost of a task is very low in XKAAPI, the overhead induced
-is negligible. Once the DAG of clusters has been computed, we can find the
-mapping between the clusters and the processors according to the HEFT
-algorithm for instance. 
+diamond shaped nodes).  Indeed, as XKAAPI uses a work stealing algorithm to
+execute a task as soon as it is ready, we do not control the execution order.
+For instance, with the clusters of the figure \ref{fig:conv-decomp2} and
+without these tasks, if the clusters $A^<$ and $A^{\sim}$ are executed on the
+same processor, the second one might start before the end of the first,
+delaying the execution of the cluster $A$. Although these synchronization
+tasks increase the size of the graph, they are empty, and as the cost of a
+task is very low in XKAAPI, the overhead induced is negligible. Once the DAG
+of clusters has been computed, we can find the mapping between the clusters
+and the processors according to the HEFT algorithm for instance. 
 
 These two steps have a cost $\leq |V|^2$ hence our offline scheduler has a
 theoretical worst case cost in $O(|V|^3)$ due to the Warshall algorithm,
-however the mean case cost is still $O(log(|V|)*|V|^2*MaxRandomTry)$ (due to
-the convex cluster algorithm).  Although this cost is quite high, in some
-domains such as physical simulation, applications are often
-iterative and regular. This means that the same parallel code has the
-opportunity to be executed several times in a row using the same schedule.
-Hence we can amortize that initial cost. As our aim is to study the impact of
-communication times, we will not try to amortize this initial cost in the
-following experiments and we will separate it from the execution times in our
-results.
+however the mean case cost is still $O(MaxRandomTry*log(|V|)*|V|^2)$ (due to
+the convex clusters algorithm).  Although this cost is quite high, we can
+think to reuse a schedule several times for iteratives and regular
+applications such as physical simulation.  This way we might be able to
+amortize this overhead. As our aim is to study the impact of communication
+times, we will not try to amortize it in the following experiments and we will
+separate it from the execution times in our results.
 
 \section{Analysis and reduction of the communication times}
 \label{sec:exp}
@@ -591,7 +592,7 @@ previous study \cite{ferreiralima:hal-00735470}.
     \label{table:machines}
 \end{table*}
 
-All the experiment presented in this study, including those presented in the
+All the experiments presented in this study, including those presented in the
 previous sections, have been run on one or the other
 of the two following machines:
 Idgraf\footnote{\url{http://digitalis.inria.fr/index.php/Usage\#idgraf}} a HPC
@@ -624,19 +625,20 @@ The applications used for the experiments are part of the example proposed by
 XKAAPI 1.0.4. They use the CBLAS, LAPACK(E), PLASMA and QUARK libraries which
 are all installed thanks to the plasma installer (version 2.4.6)\cite{PLASMA}.
 These programs also use the CUBLAS library provided by Nvidia with CUDA 5.0,
-which is installed using the latest installer available on Nvidia's website
-(released the 01/10/2013).
+which is installed using Nvidia's installer (released the 01/10/2013, 
+package nvidia-updates-304.54).
+
 
 Regarding our algorithms, unless stated otherwise, we use the following
 parameters: $NbRandomTries=\sqrt{|V|}$, $MaxClusterSize=10$, and for the
 studied applications $MatrixSize=1000$, $BlocSize=MatrixSize/10$. 
 
-For each curve presented in the following section, each points represent the
+For each curve, each point represents the
 mean runtime of $15$ to $30$ different runs with the same parameters, and a
 confidence interval of $95\%$ is displayed as an error bar.
 
 Finally, by default the execution time presented for the algorithms HEFT
-offline, and convex cluster correspond to the total time minus the overhead
+offline, and convex clusters correspond to the total time minus the overhead
 induced by the static scheduler.
 
 \subsection{Comparison of online and offline heuristics}
@@ -680,7 +682,7 @@ that a processor which should be ready is not and will adapt its decisions.
     \label{fig:OnOff}
 \end{figure}
 
-To show these differences, compare the makespan of a Cholesky decomposition on
+To show these differences, we compare the makespan of a Cholesky decomposition on
 our two machines using all the available GPUs  with the two versions of HEFT.
 The results are displayed in figure \ref{fig:OnOff}. The first important point
 is that, on Mapuche (figure \ref{fig:OnOffMapuche}), the offline algorithm
@@ -702,19 +704,19 @@ hypothesis, is that a contention which cannot be anticipated by the model
 appears on the PCI buses (see figure \ref{fig:idgraf}) when we use all the
 GPUs. 
 
-\mytodo{Merci de relire ici, jusqu'au IV-A (inclus)}
+\mytodo{Relire jusqu'au IV-A (inclus)}
 To prove this hypothesis, we run the same experiment on zero, one, two, four
 and eight GPUs with both algorithms. The figure \ref{fig:ContentionGpu} shows
 the results of these runs.  We can see that we obtain equivalent or better
-makespan using only one GPU rather then eight.  Moreover it is still more
-efficient to use eight GPUs than four. This experiment confirm our hypothesis,
+makespan using only one GPU rather then eight.  Nevertheless it is still more
+efficient to use eight GPUs than four. This experiment confirm our hypothesis:
 when we use several GPUs on idgraf, some contention appears. In addition, we
 have found that for many tasks, the predicted execution times (i.e. the
 execution time extracted from the calibration runs) were increasing as we were
 using more GPUs. As we need a data transfer to know when a GPU task is
 finished, our performance model includes a small communication in the
-predicted execution times. However when we some contention appears, this
-communication take more time and modify substantially the predicted execution
+predicted execution times. Thus when some contention appears, as this
+communication take more time, it modify substantially the predicted execution
 time which biased our algorithms.  However, we can easily avoid this bias by
 performing our calibration run with only one GPU.  Doing this, we are able to
 reduce the execution time of $24.7\%$ on 8 GPUs as we can see on figure
@@ -745,11 +747,11 @@ some contention on the PCI buses.
 
 Finally, we have clearly shown that the offline algorithm is able to give
 better results (up to $59\%$ in our experiments) by avoiding some
-communications. However, if the model does not fit to the reality (for example
-when there is some contention), our offline algorithm is biased. Hence
-we can think about implementing an hybrid scheduler which takes initial
-decisions statically and adapts (or recompute them) if the actual execution
-times do not match to the expected ones.
+communications. Still, if the model does not fit to the reality (for example
+when there is some contention), our offline algorithm is biased. Hence we can
+think about implementing an hybrid scheduler which takes initial decisions
+statically and adapts (or recompute them) if the actual execution times do not
+match to the expected ones.
 
 %\begin{figure*}[t!]
 %    %\begin{adjustwidth}{}{-3cm}
@@ -772,7 +774,7 @@ times do not match to the expected ones.
 %    \end{subfigure}
 %    %\end{adjustwidth}
 %
-%    \caption{Square matrix dimension impact on convex cluster and HEFT
+%    \caption{Square matrix dimension impact on convex clusters and HEFT
 %    algorithm, on a Cholesky decomposition, on both machines.}
 %    \label{fig:Mat}
 %\end{figure*}
@@ -782,18 +784,18 @@ times do not match to the expected ones.
 \label{sec:exp-exp-clust}
 
 In the following experiments, we increase the grain of the DAG using the
-convex cluster algorithm before running the offline HEFT algorithm. Using this
+convex clusters algorithm before running the offline HEFT algorithm. Using this
 combination, we will show that we can have an even better gain than with the
 offline or the online algorithm only.
 
 
-As offline heft, the convex cluster algorithm provide better results for small
+As offline heft, the convex clusters algorithm provide better results for small
 matrix. However for Idgraf with the parameter $BlocSize=MatrixSize/10$ there
 are not enough communications to obtain a significant gain, hence we use
 $BlocSize=MatrixSize/20$ for the next experiment on Idgraf to reduce the
 grain. 
 
-In our implementation of the convex cluster algorithm, we can set the maximum
+In our implementation of the convex clusters algorithm, we can set the maximum
 size of a cluster as a parameter. Using this parameter (see algorithm
 \ref{algo:conv-clust}, line \ref{algop:rec-stop}), we can decide how much we
 want to increase the grain of the DAG and reduce the amount of communications
@@ -802,12 +804,12 @@ The following  experiments will show the impact of this parameter on the
 schedule.
 
 
-%Our first experiment on the convex cluster algorithm aims at showing for which
+%Our first experiment on the convex clusters algorithm aims at showing for which
 %matrix size this heuristic can be useful. We can see in figure
-%\ref{fig:MatMapuche} that as for the offline HEFT, the convex cluster
+%\ref{fig:MatMapuche} that as for the offline HEFT, the convex clusters
 %algorithm gives better results for small matrices, with a gain up to $28.5\%$
 %on Mapuche with a matrix size of $800*800$. In our implementation of the
-%convex cluster algorithm, we can set the maximum size of a cluster as a
+%convex clusters algorithm, we can set the maximum size of a cluster as a
 %parameter. Hence the following experiments will show the impact of this
 %parameter on the schedule. 
 
@@ -833,7 +835,7 @@ schedule.
     \end{subfigure}
     %\end{adjustwidth}
 
-    \caption{Effect of the maximum size of clusters on the convex cluster
+    \caption{Effect of the maximum size of clusters on the convex clusters
     algorithm, on a Cholesky decomposition, on both machines.}
     \label{fig:Clusters}
 \end{figure}
@@ -855,7 +857,7 @@ gain. However if we use a cluster size larger than $70$, it seems that we
 loose to much scheduling freedom and the HEFT algorithm cannot give an efficient
 scheduling anymore. Finally, we can notice that with $MaxClusterSize=35$ we
 reduce the execution time by $48\%$ in comparison to the offline HEFT
-algorithm and $59.5\%$ in comparison to the online version.
+algorithm and $59\%$ in comparison to the online version.
 
 In figure \ref{fig:ClustersIdgraf}, we display the results of the experiment
 on Idgraf using $8$ GPUs, we can see that the best cluster size is quite
@@ -883,7 +885,7 @@ clustering algorithm, convex clusters.
 This study focus on fine grain applications, where the communication
 times have a huge impact on the total execution time. Using an offline
 algorithm, we are able to reduce the makespan of an application  up to $17\%$ 
-on a machine with $8$ GPUs, and up to $48\%$ on a machine with only one GPU.
+on a machine with $8$ GPUs, and up to $22\%$ on a machine with only one GPU.
 
 Our study has also highlighted some  contention effects and their impact on
 the performance model used by XKAAPI. Moreover, we have proposed one technique
@@ -892,7 +894,7 @@ results of offline schedulers we need a performance model which takes
 contention effects into account.
 
 Finally by increasing the grain of a DAG with the clustering algorithm before
-running the offline HEFT algorithm, we observe a substantial gain up to $59.5\%$
+running the offline HEFT algorithm, we observe a substantial gain up to $59\%$
 on the makespan on a machine with 1 GPU and $34\%$ on a machine with 8 GPUs, 
 compared to the online HEFT.
 
