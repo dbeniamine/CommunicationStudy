@@ -13,8 +13,8 @@
 %========================= Todo notes  =========================================
 
 
-%\usepackage[obeyDraft]{todonotes}
-\usepackage{todonotes}
+\usepackage[obeyDraft]{todonotes}
+%\usepackage{todonotes}
 \newcommand{\mytodo}[1]{\todo[inline]{#1}}
 %===============================================================================
 
@@ -460,7 +460,6 @@ this size (see line \ref{algop:rec-stop}).
     \label{fig:Rdt}
 \end{figure}
 
-\mytodo{paragraphe a relire}
 In addition, the original algorithms kept the cluster where the smallest
 partition was the larger and recursively divide either all the partition or
 none of them. These criteria gave unstable results. Hence we always keep the
@@ -704,7 +703,6 @@ hypothesis, is that a contention which cannot be anticipated by the model
 appears on the PCI buses (see figure \ref{fig:idgraf}) when we use all the
 GPUs. 
 
-\mytodo{Relire jusqu'au IV-A (inclus)}
 To prove this hypothesis, we run the same experiment on zero, one, two, four
 and eight GPUs with both algorithms. The figure \ref{fig:ContentionGpu} shows
 the results of these runs.  We can see that we obtain equivalent or better
@@ -717,11 +715,10 @@ using more GPUs. As we need a data transfer to know when a GPU task is
 finished, our performance model includes a small communication in the
 predicted execution times. Thus when some contention appears, as this
 communication take more time, it modify substantially the predicted execution
-time which biased our algorithms.  However, we can easily avoid this bias by
+time which biased our algorithms.  However, we can easily reduce this bias by
 performing our calibration run with only one GPU.  Doing this, we are able to
 reduce the execution time of $24.7\%$ on 8 GPUs as we can see on figure
-\ref{fig:ContentionTrick}. All these results validate our hypothesis, there is
-some contention on the PCI buses.
+\ref{fig:ContentionTrick}.
 
 \begin{figure}[htb]
     \centering
@@ -751,7 +748,7 @@ communications. Still, if the model does not fit to the reality (for example
 when there is some contention), our offline algorithm is biased. Hence we can
 think about implementing an hybrid scheduler which takes initial decisions
 statically and adapts (or recompute them) if the actual execution times do not
-match to the expected ones.
+match the expected ones.
 
 %\begin{figure*}[t!]
 %    %\begin{adjustwidth}{}{-3cm}
@@ -789,7 +786,7 @@ combination, we will show that we can have an even better gain than with the
 offline or the online algorithm only.
 
 
-As offline heft, the convex clusters algorithm provide better results for small
+As offline heft, the convex clusters algorithm provides better results for small
 matrix. However for Idgraf with the parameter $BlocSize=MatrixSize/10$ there
 are not enough communications to obtain a significant gain, hence we use
 $BlocSize=MatrixSize/20$ for the next experiment on Idgraf to reduce the
@@ -800,8 +797,7 @@ size of a cluster as a parameter. Using this parameter (see algorithm
 \ref{algo:conv-clust}, line \ref{algop:rec-stop}), we can decide how much we
 want to increase the grain of the DAG and reduce the amount of communications
 that HEFT has to manage.  However it also reduce number of possible schedules.
-The following  experiments will show the impact of this parameter on the
-schedule.
+The following  experiments show the impact of this parameter on the makespan.
 
 
 %Our first experiment on the convex clusters algorithm aims at showing for which
@@ -861,8 +857,8 @@ algorithm and $59\%$ in comparison to the online version.
 
 In figure \ref{fig:ClustersIdgraf}, we display the results of the experiment
 on Idgraf using $8$ GPUs, we can see that the best cluster size is quite
-different than for Mapuche. This difference comes from the fact that as Idgraf
-embed more processors than Mapuche, hence it needs a larger graph (i.e.
+different than for Mapuche. This difference comes from the fact that Idgraf
+embed more processors than Mapuche, thus it needs a larger graph (i.e.
 smaller clusters) to use them efficiently. However if we still obtain a
 substantial gain $34\%$ compared to the online algorithm, this only represent
 a reduction of $11\%$ of the makespan compared to the offline HEFT.  
@@ -899,8 +895,9 @@ on the makespan on a machine with 1 GPU and $34\%$ on a machine with 8 GPUs,
 compared to the online HEFT.
 
 However, these results do not take into account the overhead needed to run
-scheduling algorithms which is not negligible. Hence, we still need to work on
-the ability to reuse a schedule to amortize its initial computation cost. 
+offline scheduling algorithms which is not negligible. Hence, we still need to
+work on the ability to reuse a schedule to amortize its initial computation
+cost. 
 
 To conclude, this study highlight the fact, that when the grain is fine
 enough, and if we use heterogeneous machines, it is worthwhile to use some 
@@ -930,7 +927,6 @@ modify it if the actual times are not close enough to the predictions. Moreover
 using such an algorithm, we could avoid the initial calibration run required
 by XKAAPI's perfomance model.
 
-\mytodo{Remove the todo list}
 \section*{Acknowledgments}
 
 Experiments presented in this paper were carried out using the Grid'5000
