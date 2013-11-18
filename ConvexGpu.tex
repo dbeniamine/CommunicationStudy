@@ -13,8 +13,8 @@
 %========================= Todo notes  =========================================
 
 
-\usepackage[obeyDraft]{todonotes}
-%\usepackage{todonotes}
+%\usepackage[obeyDraft]{todonotes}
+\usepackage{todonotes}
 \newcommand{\mytodo}[1]{\todo[inline]{#1}}
 %===============================================================================
 
@@ -232,6 +232,8 @@ Independent, linear and primitive (see figure \ref{fig:clans}). Once the tree
 is computed, the algorithm traverse the tree bottom up using the communication
 and execution times to determine if two clans need to be merged or not.
 
+\mytodo{Insister sur l'aspect théorique de cette étude: pas de contention,
+utilise beaucoup de graphs random, pas d'exec réel}
 A theoretical comparison\cite{khan1994comparison} between the algorithms DSC,
 MCP (Modified Critical Path, similar to DSC), MH, HU (lists algorithms) and
 CLANS have shown that CLANS is robust and efficient for a large and diverse
@@ -267,6 +269,8 @@ HEFT.  However, this work have also highlighted the fact that some contention
 can occur on machines with many GPUs linked to the processors by an
 interconnection network.
 
+\mytodo{Insister étude d'algo special com dans context com, + contention et
+debut de sol}
 In this study, we use machines with one to eight GPUs, and we aim at showing
 and measuring the impact of the communication times on the scheduling of HPC
 applications.  To reach that goal, we provide the implementation of  a static
@@ -296,10 +300,11 @@ section \ref{sec:cncl}.
 By default, XKAAPI uses an online scheduler and compute data dependencies in a
 lazy way. Its scheduler provides various heuristics, among them, we can find
 an online adaptation of the HEFT algorithm. The main difference between this
-version and the original one is that the first one cannot sort the ready tasks
-according to the upward rank as the DAG is not fully known.  Still the online
-heuristic works with actual times when the offline one uses predicted times thus
-only the first one is able to adapt to unexpected effects such as contention.
+version and the algorithm from \cite{topcuoglu2002performance} is that the
+first one cannot sort the ready tasks according to the upward rank as the DAG
+is not fully known.  Still the online heuristic works with actual times when
+the offline one uses predicted times thus only the first one is able to adapt
+to unexpected effects such as contention.
 
 \subsection{XKAAPI scheduler and performance model}
 \label{sec:impl-kaapi}
@@ -419,7 +424,7 @@ number of nodes of the DAG, and a mean case in $O(|V|^2)$.
 
 Once these dependencies are computed, we are able to run our implementation of
 the convex clusters algorithm (see algorithm \ref{algo:conv-clust}). The
-original heuristic select two independent random nodes and uses
+algorithm from \cite{lepere2002new} select two independent random nodes and uses
 them to divide the group into four partitions $A$ and $A^{\sim}$ which are
 independent, their predecessors $A^<$ and successors $A^>$. Once these
 partitions are computed, either the smallest of $A$ and $A^{\sim}$ is large
@@ -468,8 +473,8 @@ we choose to recursively divide each individual clusters if it is large enough
 (line \ref{algop:rec-stop}). As we can see in figure \ref{fig:Rdt}, with this
 heuristic, the algorithm stabilize quicker than with the original one.
 Moreover if we do not reach the best result obtained by the original
-algorithm, when the stabilisation occurs, we provide a better schedule with
-our heuristic.
+algorithm, we still provide a better schedule with
+our heuristic when the stabilisation occurs.
 
 The two important (and costly) steps of this algorithm are the initial
 decomposition into four clusters, and their update to keep the clusters
@@ -873,7 +878,7 @@ of communication times on the maskespan of fine grain applications.
 
 \subsection{Main contributions}
 \label{chap:cncl-contrib}
-
+\mytodo{insister sur situation plein de com}
 Our first contribution is the implementation of a static scheduler using
 a classical algorithm, Heterogeneous Earliest Finish Time combined to a
 clustering algorithm, convex clusters.
@@ -920,6 +925,8 @@ for iterative applications (such as physical simulation).
 %them or to run another algorithm after them to merge or cut some clusters to
 %remove the cyclic dependencies.
 
+\mytodo{insister ici amélioration sans toucher l'algo, donc gros potentiel sur
+cette piste}
 Finally an interesting perspective would be to design an adaptive algorithm
 able to update the different parameters of the heuristic tested in this study,
 and which combine an initial (offline) schedule with an online tool allowed to
