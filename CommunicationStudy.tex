@@ -130,13 +130,14 @@ scheduling}
 
 To obtain portable performances, some runtimes such as XKAAPI
 \cite{gautierxkaapi} or StarPU \cite{augonnet2011starpu} allow the programmer
-to describe an application as a set of tasks and dependencies.  They often use
-a workstealing algorithm \cite{blumofe1995cilk} to schedule theses tasks on
-the available resources. As it provide a good load balancing, this heuristic 
-is quite efficient on homogeneous machines. 
+to describe an application as a set of tasks and dependencies. They represent
+it as a Directed Acyclic Graph of tasks and they often use a workstealing
+algorithm \cite{blumofe1995cilk} to schedule theses tasks on the available
+resources. As it provide a good load balancing, this heuristic is quite
+efficient on homogeneous machines. 
 
-However nowadays, HPC computers includes many GPUs which embed their own
-memory, therefore, we need to transfer some data from the main memory
+However, nowadays HPC computers includes many GPUs which embed their own
+memory, therefore we need to transfer some data from the main memory
 to them. As these communications are not instantaneous, they must be taken
 into account when we try to write efficient code on a GPU.  Indeed some work
 \cite{venkatasubramanian2009tuned} have shown that their impact is such
@@ -152,7 +153,7 @@ The workstealing algorithm is a distributed adaptation of the list scheduling
 which provide a makespan $\omega\leq2\omega^*$ where $\omega^*$ is the optimal
 makespan \cite{GrahamRL1966Bounds, GrahamRL1969Bounds}. However this bound is
 true for homogeneous processors and without communications. In a model with
-heterogenous machines and no communications, this bounds grows to
+heterogeneous machines and no communications, this bounds grows to\\
 $\omega\leq\min(s+2-\frac{2s+1}{n},\frac{n+1}{2})\omega^*$ where $s$ is the
 number of different resources and $n$ the number of processors. Hence it
 does not scale for current HPC computers. 
@@ -171,21 +172,21 @@ rank depends for a task $t$ of its outgoing communications and the execution
 times of the tasks depending on $t$. Then it assign each task to the processor
 which minimizes its completion time. This heuristic is not exactly a list
 algorithm as it allows a processor to remain idle while a task is ready to be
-executed.  Therefore it does not provide any bound on the execution time.
+executed. Therefore it does not provide any bound on the execution time.
 Moreover recent work \cite{Kedad-SidhoumMonnaMounieEtAl2013} have shown that
 the worst case makespan can be larger than $\frac{m}{2}\omega^*$ where $m$ is
 the number of tasks. Despite this result, the HEFT algorithm is widely used
-(by StarPU and XKAAPI amongst others).Previous work has shown that it gives
+(by StarPU and XKAAPI amongst others). Previous work has shown that it gives
 good results in practice \cite{ferreiralima:hal-00735470}. Nevertheless, the
-same study have shown that in some cases this algorithm gives better results
-when only the half of the available GPUs are used.
+same study have also shown that in some cases this algorithm gives better
+results when only the half of the available GPUs are used.
 
 While most of these algorithms are designed offline, they are often
 implemented online in the runtimes schedulers. These online adaptations have a
 lower cost than the original heuristics, however they rely on less
-informations, for example the online HEFT adaptation neglect the outgoing work of
-a task when it compute its schedule. Therefore the offline version should be
-more efficient for fine grain (small $\frac{computations}{communications}$)
+informations, for example the online HEFT neglect the outgoing work of a task
+when it compute its schedule. Therefore the offline version should be more
+efficient for fine grain (small $\frac{computations}{communications}$)
 applications as the communications can not always be overlapped with
 computations.
 
@@ -204,13 +205,12 @@ One of the most known clustering heuristic is the Dominant Sequence
 Clustering\cite{yang1994dsc}, which assigns to each task a priority
 corresponding to the longest path from a root node to a sink node including
 this task. Then it sort the tasks by decreasing priority and try to affect
-each task to the cluster which minimize its start time among the cluster
+each task to the cluster which minimize its start time among the clusters
 containing its predecessors. If a task can start earlier by assigning it to a
-new cluster instead of an existing one, it create a new cluster for this task.
-This heuristic can be very efficient as it try to reduce the longest path
-through the DAG. However the graph induced by the clusters can contain some
-cycles, hence it can not be directly implemented on a middleware such as
-XKAAPI.
+new cluster instead of an existing one.  This heuristic can be very efficient
+as it try to reduce the longest path through the DAG. However the graph
+induced by the clusters can contain some cycles, hence it can not be directly
+implemented on a middleware such as XKAAPI.
 
 \begin{figure}[htb]
     \centering
@@ -237,13 +237,13 @@ MCP (Modified Critical Path, similar to DSC), MH, HU (lists algorithms) and
 CLANS have shown that CLANS is robust and efficient for a large and diverse
 set of graphs. All the other algorithms give very bad performances for graphs
 with a fine grain. However this algorithm is very complex as we need to
-extract the tree of clans, and as DSC it can produce a cluster graph with
-cyclic dependencies. Hence it is not suited for our problem. Although this
-study has compared several algorithms on a lot of randomly generated graphs,
-it assumes that the execution times always corresponds to the predicted ones.
-This assumption does not fit the reality as the execution times can
-slightly change from a run to another and as some unpredicted effects such
-as contention can appear. 
+extract the tree of clans furthermore, as DSC it can produce a cluster graph
+with cyclic dependencies. Hence CLANS is not suited for our problem. Although
+this study has compared several algorithms on a lot of randomly generated
+graphs, it assumes that the execution times always corresponds to the
+predicted ones.  This assumption does not fit the reality as the execution
+times can slightly change from a run to another and as some unpredicted
+effects such as contention can appear. 
 
 \begin{figure}[htb]
     \centering
@@ -258,7 +258,7 @@ of clusters.  Indeed a cluster $C$ is convex if and only if $\forall\ (x,z)\
 \in\ C$ all task $y$, such that $x\ \prec\ y\ \prec\ z$, is in $C$ (see
 figure \ref{fig:conv}). By this property, we know that there are no two way
 communications between two clusters. Moreover as the graph obtained by merging
-the tasks inside a cluster is a Direct Acyclic Graph, it allow us to run
+the tasks inside a cluster is a Direct Acyclic Graph, thus it allow us to run
 any scheduling algorithm on it.
 
 \subsection{Key Issues}
@@ -549,7 +549,7 @@ These two steps have a cost $\leq |V|^2$ hence our offline scheduler has a
 theoretical worst case cost in $O(|V|^3)$ due to the Warshall algorithm,
 however the mean case cost is still $O(MaxRandomTry*log(|V|)*|V|^2)$ (due to
 the convex clusters algorithm).  Although this cost is quite high, we can
-think to reuse a schedule several times for iteratives and regular
+think to reuse a schedule several times for iterative and regular
 applications such as physical simulation.  This way we might be able to
 amortize this overhead. As our aim is to study the impact of communication
 times, we will not try to amortize it in the following experiments and we will
@@ -623,7 +623,7 @@ It is important to note that Idgraf has a hierarchical topology as shown in
 figure \ref{fig:idgraf}, the eight GPUS are split over two PCI Bridge which
 are linked together. Each bridge manage 4 GPUs separated in two groups which
 belong to two different switches. With this particular topology, simultaneous
-communications involving several GPUs might lead to contention on the PCie
+communications involving several GPUs might lead to contention on the PCi
 switches, this contention will be highlighted in section
 \ref{sec:exp-exp-perf}.
 
@@ -715,7 +715,7 @@ and eight GPUs with both algorithms. The figure \ref{fig:ContentionGpu} shows
 the results of these runs.  We can see that we obtain equivalent or better
 makespan using only one GPU rather then eight.  Nevertheless it is still more
 efficient to use eight GPUs than four. This experiment confirm our hypothesis:
-when we use several GPUs on idgraf, some contention appears. In addition, we
+when we use several GPUs on Idgraf, some contention appears. In addition, we
 have found that for many tasks, the predicted execution times (i.e. the
 execution time extracted from the calibration runs) were increasing as we were
 using more GPUs. As we need a data transfer to know when a GPU task is
@@ -876,7 +876,7 @@ During this study, we have worked on
 XKAAPI\cite{gautier2007kaapi,gautierxkaapi}, an existing middleware for
 parallel programing in which we have implemented a static scheduler with
 several heuristics. Then, we have used these heuristics to evaluate the impact
-of communication times on the maskespan of fine grain applications.
+of communication times on the makespan of fine grain applications.
 
 \subsection{Main contributions}
 \label{chap:cncl-contrib}
@@ -896,9 +896,9 @@ We have also highlighted some  contention effects and their impact on the
 performance model used by XKAAPI. Moreover, we have proposed one technique to
 reduce their effects on the offline algorithms without modifying them.  To
 improve upon the results of offline scheduling algorithm, one solution is to
-design a very precise performance model which manage contention effects.
-Another simpler solution consist on comparing at runtime the predicted
-execution times with the actual ones and to adapt when they does not fit.
+design a performance model which manage contention effects.  Another simpler
+solution consist on comparing at runtime the predicted execution times with
+the actual ones and to adapt when they does not fit.
 
 Finally by increasing the grain of a DAG with the clustering algorithm before
 running the offline HEFT algorithm, we observe a substantial gain up to $59\%$
@@ -921,15 +921,8 @@ efficient to use a simpler online scheduler.
 
 For all the experiment shown in this study we have removed the overhead of the
 offline scheduler, however this overhead is not negligible. Therefore some
-future work will consist on giving the ability to reuse a (partial) schedule
+future work will consist on giving the ability to reuse a schedule
 for iterative applications (such as physical simulation).
-
-%Additionally, we would like to complete our study by a comparison with some
-%others algorithms designed to reduce the impact of communication times such as
-%DSC or CLANS. However these algorithms might create a cyclic DAG of clusters
-%which is incompatible with XKAAPI's runtime. Hence we need either to adapt
-%them or to run another algorithm after them to merge or cut some clusters to
-%remove the cyclic dependencies.
 
 Finally, an interesting perspective would be to design an adaptive algorithm
 able to set the clusters size according to the grain of the application and
@@ -956,7 +949,7 @@ from the paper XKAAPI IPDPS 2013 \cite{gautierxkaapi}.
 \IEEEtriggeratref{8}
 
 \bibliographystyle{IEEEtran}
-\bibliography{ConvexGpu}
+\bibliography{CommunicationStudy}
 
 \listoftodos
 %==============================================================================

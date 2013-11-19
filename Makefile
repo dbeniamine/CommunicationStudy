@@ -1,5 +1,5 @@
 #tex file
-SRC=ConvexGpu.tex
+SRC=CommunicationStudy.tex
 IMGFOLDER=img
 OUTPUT=$(SRC:.tex=.pdf)
 TEXLOG=$(SRC:.tex=.log)
@@ -9,11 +9,11 @@ PLOTSRC=$(wildcard $(IMGFOLDER)/*.plot)
 PLOTOUTPUT=$(PLOTSRC:.plot=.eps)
 PLOTTEX=$(PLOTSRC:.plot=.tex)
 #bibliography file
-BIB=ConvexGpu.bib
+BIB=CommunicationStudy.bib
 
 all : $(OUTPUT)
 
-ConvexGpu.pdf: ConvexGpu.tex $(BIB) $(PLOTOUTPUT) $(DOTOUTPUT)
+CommunicationStudy.pdf: CommunicationStudy.tex $(BIB) $(PLOTOUTPUT) $(DOTOUTPUT)
 		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
 		bibtex $(patsubst %.tex,%.aux,$<) 
 		pdflatex -file-line-error -interaction=nonstopmode --shell-escape $<  
