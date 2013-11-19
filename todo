@@ -1,8 +1,0 @@
-+ Paper comm & GPU computations
-+ Verify and/or write parsers
-+ Expes Idgraf
-    -Nb GPU used cal 8 GPUs: wip adapt text
-    -MatSize on off off+cl 8GPU 600 -> 1600: waiting
-+ Expes Mapuche
-    -MatSize on off off+cl 600-> 2000 : wip
-    -Clust size if need to adapt: waiting

@@ -97,27 +97,27 @@ scheduling}
 
 \maketitle%affichage du titre
 \begin{abstract}
-    High Performance Computing machines use more and more Graphical Processing
-    Units as they are very efficient for homogeneous computation such as
-    matrix operations. However, before using these accelerators, one has to
-    transfer data from the processor to them, which can be slow. 
+High Performance Computing machines use more and more Graphical Processing
+Units as they are very efficient for homogeneous computation such as matrix
+operations. However, before using these accelerators, one has to transfer data
+from the processor to them, which can be slow. 
 
-    To study the impact of these communications, we  provide two offline
-    scheduling algorithm implementations: HEFT and convex clusters.  We
-    compare them with an online scheduler on fine grain heterogeneous
-    applications running on a machine with eight GPUs. Moreover, we  discuss
-    the impact of unpredicted events (such as contention) on these
-    algorithms, and we the limits of XKAAPI's performance model.
+To study the impact of these communications, we  provide two offline
+scheduling algorithm implementations: HEFT and convex clusters.  We compare
+them with an online scheduler on fine grain heterogeneous applications running
+on a machine with one to eight GPUs. Moreover, we  discuss the impact of
+unpredicted events (such as contention) on these algorithms, and we the limits
+of XKAAPI's performance model.
 
-    Finally, our study shows that, by combining a clustering algorithm and a
-    classical scheduling heuristic, we can obtain a substantial gain on the
-    makespan of fine grain applications. However, these results can still be
-    improved as XKAAPI's performance model does not manage contention effect,
-    which biased our algorithms.
+Finally, our study shows that, by combining a clustering algorithm and a
+classical scheduling heuristic, we can obtain a substantial gain on the
+makespan of fine grain applications. However, these results can still be
+improved as XKAAPI's performance model does not manage contention effects,
+which biased our algorithms.
 \end{abstract}
 
 \begin{IEEEkeywords}
-    GPU; Clustering; Scheduling; XKAAPI; Communications;
+    GPU; Clustering; Scheduling; XKAAPI; Communications; Contention;
 
 \end{IEEEkeywords}
 
