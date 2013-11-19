@@ -13,8 +13,8 @@
 %========================= Todo notes  =========================================
 
 
-%\usepackage[obeyDraft]{todonotes}
-\usepackage{todonotes}
+\usepackage[obeyDraft]{todonotes}
+%\usepackage{todonotes}
 \newcommand{\mytodo}[1]{\todo[inline]{#1}}
 %===============================================================================
 
@@ -232,15 +232,18 @@ Independent, linear and primitive (see figure \ref{fig:clans}). Once the tree
 is computed, the algorithm traverse the tree bottom up using the communication
 and execution times to determine if two clans need to be merged or not.
 
-\mytodo{Insister sur l'aspect théorique de cette étude: pas de contention,
-utilise beaucoup de graphs random, pas d'exec réel}
 A theoretical comparison\cite{khan1994comparison} between the algorithms DSC,
 MCP (Modified Critical Path, similar to DSC), MH, HU (lists algorithms) and
 CLANS have shown that CLANS is robust and efficient for a large and diverse
-set of graphs. All the others algorithms give very bad performances for graphs
+set of graphs. All the other algorithms give very bad performances for graphs
 with a fine grain. However this algorithm is very complex as we need to
 extract the tree of clans, and as DSC it can produce a cluster graph with
-cyclic dependencies. Hence it is not suited for our problem. 
+cyclic dependencies. Hence it is not suited for our problem. Although this
+study has compared several algorithms on a lot of randomly generated graphs,
+it assumes that the execution times always corresponds to the predicted ones.
+This assumption does not fit the reality as the execution times can
+slightly change from a run to another and as some unpredicted effects such
+as contention can appear. 
 
 \begin{figure}[htb]
     \centering
@@ -269,16 +272,15 @@ HEFT.  However, this work have also highlighted the fact that some contention
 can occur on machines with many GPUs linked to the processors by an
 interconnection network.
 
-\mytodo{Insister étude d'algo special com dans context com, + contention et
-debut de sol}
 In this study, we use machines with one to eight GPUs, and we aim at showing
 and measuring the impact of the communication times on the scheduling of HPC
-applications.  To reach that goal, we provide the implementation of  a static
-scheduler and several heuristics within the parallel runtime XKAAPI.  All the
-list algorithms cited before are efficient for coarse grain applications
-however they suffer bad performances when the grain is fine enough, as they do
-not consider the whole structure of the DAG. Therefore our analysis focus on
-very fine grain applications. 
+applications. To reach that goal, we provide the implementation of  a static
+scheduler and several heuristics designed to manage the communication times 
+within the parallel runtime XKAAPI. We compare these heuristics on fine grain
+applications, where the communication times are not negligible. Furthermore,
+we observe the behavior of these algorithms in front of contention effects, and
+we show how we can reduce the impact of this contention without modifying the
+scheduling algorithms.
 
 Our experimental study shows that by combining list heuristics and clustering
 algorithms, we can reduce the impact of communications times. Indeed on a
@@ -878,21 +880,25 @@ of communication times on the maskespan of fine grain applications.
 
 \subsection{Main contributions}
 \label{chap:cncl-contrib}
-\mytodo{insister sur situation plein de com}
 Our first contribution is the implementation of a static scheduler using
 a classical algorithm, Heterogeneous Earliest Finish Time combined to a
-clustering algorithm, convex clusters.
+clustering algorithm, convex clusters. 
 
-This study focus on fine grain applications, where the communication
-times have a huge impact on the total execution time. Using an offline
-algorithm, we are able to reduce the makespan of an application  up to $17\%$ 
-on a machine with $8$ GPUs, and up to $22\%$ on a machine with only one GPU.
+Using this static scheduler, we have led an experimental study which compare
+several scheduling heuristics on fine grain application, where the
+communication times have a huge impact on the total execution time.  Our
+experiments shows that by combining a clustering heuristic with a classical
+scheduling algorithm, we are able to reduce the makespan of an application  up
+to $17\%$ on a machine with $8$ GPUs, and up to $22\%$ on a machine with only
+one GPU.
 
-Our study has also highlighted some  contention effects and their impact on
-the performance model used by XKAAPI. Moreover, we have proposed one technique
-to reduce their effects on the offline algorithms. However to improve upon the
-results of offline schedulers we need a performance model which takes
-contention effects into account.
+We have also highlighted some  contention effects and their impact on the
+performance model used by XKAAPI. Moreover, we have proposed one technique to
+reduce their effects on the offline algorithms without modifying them.  To
+improve upon the results of offline scheduling algorithm, one solution is to
+design a very precise performance model which manage contention effects.
+Another simpler solution consist on comparing at runtime the predicted
+execution times with the actual ones and to adapt when they does not fit.
 
 Finally by increasing the grain of a DAG with the clustering algorithm before
 running the offline HEFT algorithm, we observe a substantial gain up to $59\%$
@@ -925,14 +931,14 @@ for iterative applications (such as physical simulation).
 %them or to run another algorithm after them to merge or cut some clusters to
 %remove the cyclic dependencies.
 
-\mytodo{insister ici amélioration sans toucher l'algo, donc gros potentiel sur
-cette piste}
-Finally an interesting perspective would be to design an adaptive algorithm
-able to update the different parameters of the heuristic tested in this study,
-and which combine an initial (offline) schedule with an online tool allowed to
-modify it if the actual times are not close enough to the predictions. Moreover
-using such an algorithm, we could avoid the initial calibration run required
-by XKAAPI's perfomance model.
+Finally, an interesting perspective would be to design an adaptive algorithm
+able to set the clusters size according to the grain of the application and
+the number of resources of the machines. Furthermore we would like to combine
+this algorithm with an online tool able to modify the scheduling decisions
+when the actual times does not fit the predicted ones. We can reasonably hope
+to obtain a substantial gain by managing the contention at the algorithm
+level, as we we have been able to reduce a makespan by $24\%$ only by changing
+the calibration of the performance model.
 
 \section*{Acknowledgments}
 
@@ -947,7 +953,7 @@ from the paper XKAAPI IPDPS 2013 \cite{gautierxkaapi}.
 
 
 %=========================Bibliographie========================================
-\IEEEtriggeratref{9}
+\IEEEtriggeratref{8}
 
 \bibliographystyle{IEEEtran}
 \bibliography{ConvexGpu}
