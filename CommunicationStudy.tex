@@ -106,7 +106,7 @@ To study the impact of these communications, we  provide two offline
 scheduling algorithm implementations: HEFT and convex clusters.  We compare
 them with an online scheduler on fine grain heterogeneous applications running
 on a machine with one to eight GPUs. Moreover, we  discuss the impact of
-unpredicted events (such as contention) on these algorithms, and we the limits
+unpredicted events (such as contention) on these algorithms, and the limits
 of XKAAPI's performance model.
 
 Finally, our study shows that, by combining a clustering algorithm and a
@@ -150,7 +150,7 @@ communications can suffer from bad performances on heterogeneous machines.
 \subsection{List scheduling algorithms}
 
 The workstealing algorithm is a distributed adaptation of the list scheduling
-which provide a makespan $\omega\leq2\omega^*$ where $\omega^*$ is the optimal
+which provides a makespan $\omega\leq2\omega^*$ where $\omega^*$ is the optimal
 makespan \cite{GrahamRL1966Bounds, GrahamRL1969Bounds}. However this bound is
 true for homogeneous processors and without communications. In a model with
 heterogeneous machines and no communications, this bounds grows to\\
@@ -184,7 +184,7 @@ results when only the half of the available GPUs are used.
 While most of these algorithms are designed offline, they are often
 implemented online in the runtimes schedulers. These online adaptations have a
 lower cost than the original heuristics, however they rely on less
-informations, for example the online HEFT neglect the outgoing work of a task
+information, for example the online HEFT neglect the outgoing work of a task
 when it compute its schedule. Therefore the offline version should be more
 efficient for fine grain (small $\frac{computations}{communications}$)
 applications as the communications can not always be overlapped with
@@ -714,14 +714,14 @@ To prove this hypothesis, we run the same experiment on zero, one, two, four
 and eight GPUs with both algorithms. The figure \ref{fig:ContentionGpu} shows
 the results of these runs.  We can see that we obtain equivalent or better
 makespan using only one GPU rather then eight.  Nevertheless it is still more
-efficient to use eight GPUs than four. This experiment confirm our hypothesis:
+efficient to use eight GPUs than four. This experiment confirms our hypothesis:
 when we use several GPUs on Idgraf, some contention appears. In addition, we
 have found that for many tasks, the predicted execution times (i.e. the
 execution time extracted from the calibration runs) were increasing as we were
 using more GPUs. As we need a data transfer to know when a GPU task is
 finished, our performance model includes a small communication in the
 predicted execution times. Thus when some contention appears, as this
-communication take more time, it modify substantially the predicted execution
+communication take more time, it modifies substantially the predicted execution
 time which biased our algorithms.  However, we can easily reduce this bias by
 performing our calibration run with only one GPU.  Doing this, we are able to
 reduce the execution time of $24.7\%$ on 8 GPUs as we can see on figure
@@ -857,7 +857,7 @@ The following  experiments show the impact of this parameter on the makespan.
 Figure \ref{fig:ClustersMapuche} shows the results of our last experiment on
 Mapuche. We can see that we need large clusters $\geq 30$ to obtain the maximal
 gain. However if we use a cluster size larger than $70$, it seems that we
-loose to much scheduling freedom and the HEFT algorithm cannot give an efficient
+lose too much scheduling freedom and the HEFT algorithm cannot give an efficient
 scheduling anymore. Finally, we can notice that with $MaxClusterSize=35$ we
 reduce the execution time by $48\%$ in comparison to the offline HEFT
 algorithm and $59\%$ in comparison to the online version.
