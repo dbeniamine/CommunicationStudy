@@ -1,16 +1,16 @@
 Dear Reviewers,
 
-Thank you for your constructive remarks, all the typos signaled have been 
+Thank you for your constructive remarks.  All the typos signaled have been
 corrected. 
 
 Review 1
 "[...] more applications with more variability should be possible":
     We could have presented more applications indeed, however we have chosen
-to focus on the Cholesky kernel as in previous work [1], although the online
-HEFT gives good results for most linear algebra kernels, this application lead
-to bad performances. Moreover, some other experiments (not presented in the
-paper) on LU and DGEMM kernels, have not shown better results with the offline
-heuristics than with the online ones.
+to focus on the Cholesky kernel as in previous work [1] (10 in the paper),
+although the online HEFT gives good results for most linear algebra kernels,
+this application lead to bad performances. Moreover, some other experiments
+(not presented in the paper) on LU and DGEMM kernels, have not shown any
+significant improvement in comparison to the online heuristic. 
 
 Review 3 and 4
 "Similar findings have been published in many other publications"
@@ -18,10 +18,16 @@ and
 "The paper also introduces some heuristics to reduce the communication between
 CPUs and GPUs, but they do not seem very novel.":
     From our knowledge no clustering algorithm have been implemented in a
-parallel runtime as they required a full knowledge of the application DAG and
-as most of them can lead to a cyclic dependencies graph. Hence, all the
-publications concerning these algorithms provide only theoretical analysis.
-Our paper present an experimental study of this kind of algorithm.
+parallel runtime. Indeed these algorithms require a full knowledge of the
+application DAG and most of them can lead to a cyclic dependencies graph which
+is not managed by any parallelization middleware. Hence, all the publications
+concerning these algorithms provide only theoretical analysis.  Such studies
+are not able to evaluate the algorithms behavior in front of unpredicted
+events such as contention. Moreover, in these studies execution times fit
+predicted ones, whereas in a real context we use an estimation which may not
+be exact.  Our paper present an experimental study where all the algorithms
+are facing both contention and erroneous predicted times.
+
 
 Review 4
 
@@ -29,19 +35,19 @@ Review 4
 This is trivial and should not be emphasized too much considering the fact that 
 the GPUs share the same PCI bus.":
     Actually, as there are two different PCI Buses, it is not that clear that
-the bad performances are due to congestion before the results of our
-experiment.
+the bad performances are due to contention before the results of our
+experiments.
 
 
 + "If you claim your implementations are your contributions, why not make them 
 open source projects ? [...] The full name of XKAAPI should be explained once":
-    XKAAPI: Kernel for Adaptative and Asynchronous Parallel and Interactive
+    XKAAPI: Kernel for Adaptive and Asynchronous Parallel and Interactive
 programming is an open source project maintained by the MOAIS team (LIG -
 Inria).  It is fully available at
 http://kaapi.gforge.inria.fr/XKaapi/XKaapi.html (the link will appear on the
 camera ready version if published). Our implementations and experimental
 scripts are available from the git repository on the branch
-dbeniamine/wip/convexClustering .
+dbeniamine/wip/convexClustering.
 
 
 [1] J. V. Ferreira Lima, T. Gautier, N. Maillard, and V. Danjean, “Exploiting
