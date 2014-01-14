@@ -18,19 +18,18 @@ in this case.
 Review 3 and 4
 "Similar findings have been published in many other publications"
 and
-"The paper also introduces some heuristics to reduce the communication between
-CPUs and GPUs, but they do not seem very novel.":
-GUILLAUME : et CLANS, c'est de l'implem ou de la simu ?
+"The paper also introduces some heuristics [...], but they do not seem very novel.":
     To our knowledge no clustering algorithm have been fully implemented in a
 parallel runtime. Indeed these algorithms require a complete knowledge of the
-application DAG and most of them can lead to a cyclic aggregated dependence graph
-which cannot be scheduled cluster by cluster by a parallel runtime. Hence, all the
-publications concerning these algorithms provide only theoretical analysis.  Such
-studies are not able to evaluate the algorithms behavior in front of unpredicted
-events such as contention. Moreover, in these studies execution times fit
-predicted ones, whereas in a real context we use an estimation which may not
-be exact.  Our paper present an experimental study in which all the algorithms
-are facing both contention and erroneous predicted times.
+application DAG and most of them can lead to a cyclic aggregated dependence
+graph which cannot be scheduled cluster by cluster by a parallel runtime.
+Hence, the publications concerning these algorithms can only analyse the
+theoretical makespan provided by the scheduler. Such studies are not able to
+evaluate the algorithms behavior in front of unpredicted events such as
+contention. Moreover, in these studies execution times fit predicted ones,
+whereas in a real context we use an estimation which may not be exact.  Our
+paper present an experimental study in which all the algorithms are facing
+both contention and erroneous predicted times.
 
 
 Review 4
@@ -64,4 +63,4 @@ Computing (SBAC-PAD), 2012.
 
 Best regards,
 
-David Beniamine
+David Beniamine and Guillaume Huard
