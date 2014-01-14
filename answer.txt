@@ -5,27 +5,31 @@ corrected.
 
 Review 1
 "[...] more applications with more variability should be possible":
-    We could have presented more applications indeed, however we have chosen
-to focus on the Cholesky kernel as in previous work [1] (10 in the paper),
-although the online HEFT gives good results for most linear algebra kernels,
-this application lead to bad performances. Moreover, some other experiments
-(not presented in the paper) on LU and DGEMM kernels, have not shown any
-significant improvement in comparison to the online heuristic. 
+    We could have presented more applications, indeed, however we have chosen
+to focus on the Cholesky kernel in order to study it more thoroughly.
+This is motivated by a previous work [1] (10 in the paper), in which the online
+HEFT, which gives good results for most linear algebra kernels, exhibits a poor
+performance on Cholesky. Moreover, we performed some other experiments on
+"simpler" kernels such as LU and DGEMM, that validated the fact that clustering
+is useless when there are too few dependences. We did not include these
+experiments in the paper because they just confirm that nothing is to be expected
+in this case.
 
 Review 3 and 4
 "Similar findings have been published in many other publications"
 and
 "The paper also introduces some heuristics to reduce the communication between
 CPUs and GPUs, but they do not seem very novel.":
-    From our knowledge no clustering algorithm have been implemented in a
-parallel runtime. Indeed these algorithms require a full knowledge of the
-application DAG and most of them can lead to a cyclic dependencies graph which
-is not managed by any parallelization middleware. Hence, all the publications
-concerning these algorithms provide only theoretical analysis.  Such studies
-are not able to evaluate the algorithms behavior in front of unpredicted
+GUILLAUME : et CLANS, c'est de l'implem ou de la simu ?
+    To our knowledge no clustering algorithm have been fully implemented in a
+parallel runtime. Indeed these algorithms require a complete knowledge of the
+application DAG and most of them can lead to a cyclic aggregated dependence graph
+which cannot be scheduled cluster by cluster by a parallel runtime. Hence, all the
+publications concerning these algorithms provide only theoretical analysis.  Such
+studies are not able to evaluate the algorithms behavior in front of unpredicted
 events such as contention. Moreover, in these studies execution times fit
 predicted ones, whereas in a real context we use an estimation which may not
-be exact.  Our paper present an experimental study where all the algorithms
+be exact.  Our paper present an experimental study in which all the algorithms
 are facing both contention and erroneous predicted times.
 
 
@@ -34,8 +38,10 @@ Review 4
 + ""when we use several GPUs on Idgraf, some contention appears". 
 This is trivial and should not be emphasized too much considering the fact that 
 the GPUs share the same PCI bus.":
-    Actually, as there are two different PCI Buses, it is not that clear that
-the bad performances are due to contention before the results of our
+    Actually, as there are two different PCI controllers that provide the bandwith
+of two whole PCI buses to the machine. It is not clear, on one hand that
+the bad performances were only due to contention and on the other hand at which
+point the contention would appear, before the results of our
 experiments.
 
 
