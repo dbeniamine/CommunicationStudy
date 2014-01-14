@@ -4,21 +4,22 @@ Thank you for your constructive remarks.  All the typos signaled have been
 corrected. 
 
 Review 1
-"[...] more applications with more variability should be possible":
-    We could have presented more applications, indeed, however we have chosen
-to focus on the Cholesky kernel in order to study it more thoroughly.
-This is motivated by a previous work [1] (10 in the paper), in which the online
-HEFT, which gives good results for most linear algebra kernels, exhibits a poor
+"[...] more applications with more variability should be possible": We could
+have presented more applications, indeed, however we have chosen to focus on
+the Cholesky kernel in order to study it more thoroughly.  This is motivated
+by a previous work [1] (10 in the paper), in which the online HEFT, which
+gives good results for most linear algebra kernels, exhibits a poor
 performance on Cholesky. Moreover, we performed some other experiments on
-"simpler" kernels such as LU and DGEMM, that validated the fact that clustering
-is useless when there are too few dependences. We did not include these
-experiments in the paper because they just confirm that nothing is to be expected
-in this case.
+"simpler" kernels such as LU and DGEMM, that validated the fact that
+clustering is useless when there are too few dependencies. We did not include
+these experiments in the paper because they just confirm that nothing is to be
+expected in this case.
 
 Review 3 and 4
 "Similar findings have been published in many other publications"
-and
-"The paper also introduces some heuristics [...], but they do not seem very novel.":
+and 
+"The paper also introduces some heuristics [...], but they do not seem very
+novel.":
     To our knowledge no clustering algorithm have been fully implemented in a
 parallel runtime. Indeed these algorithms require a complete knowledge of the
 application DAG and most of them can lead to a cyclic aggregated dependence
@@ -34,13 +35,13 @@ both contention and erroneous predicted times.
 
 Review 4
 
-+ ""when we use several GPUs on Idgraf, some contention appears". 
-This is trivial and should not be emphasized too much considering the fact that 
-the GPUs share the same PCI bus.":
-    Actually, as there are two different PCI controllers that provide the bandwith
-of two whole PCI buses to the machine. It is not clear, on one hand that
-the bad performances were only due to contention and on the other hand at which
-point the contention would appear, before the results of our
++ ""when we use several GPUs on Idgraf, some contention appears".  This is
+trivial and should not be emphasized too much considering the fact that the
+GPUs share the same PCI bus.":
+    Actually, as there are two different PCI controllers that provide the
+bandwidth of two whole PCI buses to the machine. It is not clear, on one hand
+that the bad performances were only due to contention and on the other hand at
+which point the contention would appear, before the results of our
 experiments.
 
 
@@ -54,6 +55,9 @@ camera ready version if published). Our implementations and experimental
 scripts are available from the git repository on the branch
 dbeniamine/wip/convexClustering.
 
+Best regards,
+
+David Beniamine and Guillaume Huard
 
 [1] J. V. Ferreira Lima, T. Gautier, N. Maillard, and V. Danjean, “Exploiting
 Concurrent GPU Operations for Efficient Work Stealing on Multi-GPUs,” in 24rd
@@ -61,6 +65,4 @@ International Symposium on Computer Architecture and High Performance
 Computing (SBAC-PAD), 2012.
 
 
-Best regards,
 
-David Beniamine and Guillaume Huard
